@@ -45,7 +45,7 @@ public class Example4 extends JGEngine {
 		setTiles(2,9,new String[] { "#....","#....","#....","#####" });
 		// define the off-playfield tiles
 		setTileSettings(
-			"#", // tile that is found out of the playfield bounds
+			"", // tile that is found out of the playfield bounds
 			2,   // tile cid found out of playfield bounds
 			0    // which cids to preserve when setting a tile (not used here).
 		);
@@ -73,12 +73,12 @@ public class Example4 extends JGEngine {
 				Example4.this.random(3*16,pfWidth()-4*16),  // xpos
 				Example4.this.random(3*16,pfHeight()-4*16), // ypos
 				1, // collision ID
-				"myanim_l"// name of sprite or animation to use.
+				null//"myanim_l" name of sprite or animation to use.
 			);
 			xspeed = random(-2,2);
 			yspeed = random(-2,2);
 		}
-
+		
 		/** Update the object. This method is called by moveObjects. */
 		public void move() {
 			if (xspeed < 0) setGraphic("myanim_l"); else setGraphic("myanim_r");

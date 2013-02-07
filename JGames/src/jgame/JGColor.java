@@ -15,6 +15,9 @@ public class JGColor {
 	public static final JGColor pink  = new JGColor(255,140,140);
 	public static final JGColor orange= new JGColor(255,140,0);
 
+	public static final JGColor grey= new JGColor(128,128,128);
+	public static final JGColor gray= new JGColor(128,128,128);
+
 	/** a value between 0 and 255 */
 	public int r,g,b;
 	/** a value between 0 and 255, default is 255 (opaque) */

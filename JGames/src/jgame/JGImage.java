@@ -36,6 +36,10 @@ public interface JGImage {
 	/** for angle, only increments of 90 are allowed */
 	public JGImage rotate(int angle);
 
+	/** Image is rotated by rot (radians). Resulting image is square with
+	* dimension max(width, height, 0.75*(width+height))*/
+	public JGImage rotateAny(double angle);
+
 	public JGImage flip(boolean horiz,boolean vert);
 
 	/** Returns a smoothly scaled image using getScaledInstance.  This method

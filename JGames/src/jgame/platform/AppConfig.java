@@ -54,6 +54,7 @@ import java.lang.reflect.*;
  * </pre>
 
  */
+@SuppressWarnings("unused")
 public class AppConfig {
 //extends JPanel  implements ActionListener, JdpFilterListener {
 /*
@@ -70,18 +71,23 @@ public class AppConfig {
 
 	/** The list of field names; this defined the order in which the fields
 	 * are to be displayed and saved in a file. */
+	@SuppressWarnings("unchecked")
 	Vector fields = new Vector(20,50);
 
 	/** String (fieldname) to type */
+	@SuppressWarnings("unchecked")
 	Hashtable fieldtypes = new Hashtable();
 
 	/** String (fieldname) to String (GUI name) */
+	@SuppressWarnings("unchecked")
 	Hashtable fieldguinames = new Hashtable();
 
 	/** The GUI components corresponding to the fields */
+	@SuppressWarnings("unchecked")
 	Hashtable fieldcomponents = new Hashtable();
 
 	/** The fields' values */
+	@SuppressWarnings("unchecked")
 	Hashtable fieldvalues = new Hashtable();
 
 	/** The object in which the fields are to be configured, null means either
@@ -89,6 +95,7 @@ public class AppConfig {
 	Object obj=null;
 	/** The class in which the (static) fields are to be configured.  If
 	 * obj!=null, is the same as the class of obj. */
+	@SuppressWarnings("unchecked")
 	Class cls=null;
 
 	/** The file in which the fields are to be configured, null means none
@@ -175,6 +182,7 @@ public class AppConfig {
 
 	/** Get the class that this AppConfig is associated with, null if only
 	 * a file is defined. */
+	@SuppressWarnings("unchecked")
 	public Class getObjectClass() { return cls; }
 
 	/** Get the filespec of the file that this AppConfig is associated with,
@@ -203,6 +211,7 @@ public class AppConfig {
 	/** Configure a class with static fields with corresponding file. No
 	* settings are defined or loaded from the object or file.
 	 * @param filename  filespec, or null if no file */
+	@SuppressWarnings("unchecked")
 	public AppConfig(String title,Class cls, String filename) {
 		this.title=title;
 		this.filename=filename;
@@ -221,6 +230,7 @@ public class AppConfig {
 
 	/** Configure a class with static fields without the possibility of
 	* file storage.  No settings are defined or loaded from the object. */
+	@SuppressWarnings("unchecked")
 	public AppConfig(String title,Class cls) {
 		this.title=title;
 		this.cls=cls;
@@ -367,6 +377,7 @@ public class AppConfig {
 	} }
 
 	/** Load settings from previously specified fields in object. */
+	@SuppressWarnings("unchecked")
 	public void loadFromObject() { try {
 		if (cls==null) return;
 		for (int i=0; i<fields.size(); i++) {
@@ -429,6 +440,7 @@ public class AppConfig {
 	 * found in the object or class, if defined, or null otherwise.  If we
 	 * have only a class, the field must be static.
 	 */
+	@SuppressWarnings("unchecked")
 	public void defineField(String fieldname, String guiname, String type) {
 	try {
 		if (fields.contains(fieldname)) return;
@@ -453,6 +465,7 @@ public class AppConfig {
 
 
 	/** @return null if not known */
+	@SuppressWarnings("unchecked")
 	String classToType(Class cls) {
 		if (cls==Point.class) {
 			return "int2";
@@ -513,6 +526,7 @@ public class AppConfig {
 
 	/** Set field's value, given that field is already defined.  Value may be
 	* any class or String for String representations of fields. */
+	@SuppressWarnings("unchecked")
 	public void setField(String field,Object value,boolean update_gui) {
 		// XXX we don't type check
 		String fieldtype = (String) fieldtypes.get(field);
@@ -565,6 +579,7 @@ public class AppConfig {
 	}
 
 
+	@SuppressWarnings("unchecked")
 	void addGuiComponent(String fieldname) {
 		String fieldguiname = (String)fieldguinames.get(fieldname)+"  ";
 		String fieldtype = (String)fieldtypes.get(fieldname);
@@ -827,6 +842,7 @@ public class AppConfig {
 
 
 	/** A Gui component for editing a keystroke. */
+	@SuppressWarnings("serial")
 	class KeyField extends JTextField implements KeyListener,FocusListener {
 		String fieldname;
 		Color norm_bg, hlt_bg;

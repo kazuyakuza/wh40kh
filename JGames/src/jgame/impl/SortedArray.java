@@ -1,4 +1,7 @@
 package jgame.impl;
+
+import java.util.Random;
+
 /** Data structure that can be used as replacement for Hashtable&lt;String&gt;
  * for fast sorted enumeration of its elements.  It can get and put like a
  * Hashtable.  Get uses binary search, and is a little, but not much,  slower
@@ -67,6 +70,8 @@ public class SortedArray {
 			}
 			idxes[i]=-1-idx;
 		}
+		// restore old size, so grow doesn't get confused
+		size = oldsize;
 		// now, shift the array to store the remaining elements
 		if (newsize > capacity) grow(newsize-oldsize);
 		int oldi=oldsize-1;
@@ -82,6 +87,7 @@ public class SortedArray {
 			values[newi--]=elem.values[i];
 		}
 		size=newsize;
+		//checkSanity();
 	}
 
 	public void put(String key,Object value) {
@@ -100,6 +106,7 @@ public class SortedArray {
 		}
 		keys[idx] = key;
 		values[idx] = value;
+		//checkSanity();
 	}
 
 	void grow(int amount) {
@@ -120,6 +127,7 @@ public class SortedArray {
 			values[idx]=null;
 			removeNullValues(idx);
 		}
+		//checkSanity();
 	}
 
 	public void remove(SortedArray elem) {
@@ -138,6 +146,7 @@ public class SortedArray {
 		size=oldsize;
 		//lowidx points to the lowest index of the nulled value indexes
 		if (lowidx<size) removeNullValues(lowidx);
+		//checkSanity();
 	}
 
 	void removeNullValues(int firstidx) {
@@ -208,6 +217,58 @@ public class SortedArray {
 			res += "{"+keys[i]+"/"+values[i]+"},";
 		}
 		return res;
+	}
+
+	/** do some sanity checks */
+	void checkSanity() {
+		for (int i=0; i<size; i++) {
+			if (keys[i] == null || values[i] == null) {
+				System.err.println("####### Sanity check failed! ######");
+				System.err.println(toString());
+				throw new Error("Assertion failure!");
+			}
+		}
+	}
+
+	/** test method */
+	public static void main(String [] args) {
+		System.out.println("Testing SortedArray ...");
+		Object dummyobject = "dummy";
+		SortedArray arr_accum = new SortedArray(20);
+		Random random = new Random();
+		for (int n=0; n<1000; n++) {
+			// create two random sorted arrays and combine them
+			SortedArray arr1 = new SortedArray(21);
+			SortedArray arr2 = new SortedArray(22);
+			// second array has more collisions
+			for (int i=0; i<100; i++) {
+				arr2.put("key"+(int)(100+20*random.nextDouble()), dummyobject);
+				arr2.remove("key"+(int)(100+20*random.nextDouble()));
+			}
+			// first array has few collisions
+			for (int i=0; i<100; i++) {
+				arr1.put("key"+(int)(100+100*random.nextDouble()), dummyobject);
+				arr1.remove("key"+(int)(100+100*random.nextDouble()));
+			}
+			arr1.checkSanity();
+			arr2.checkSanity();
+			arr1.remove(arr2);
+			arr1.checkSanity();
+			SortedArray arr_added = new SortedArray(23);
+			arr_added.put(arr2);
+			arr_added.put(arr1);
+			arr_added.checkSanity();
+			arr_added.remove(arr2);
+			arr_added.checkSanity();
+			arr_added.remove(arr1);
+			arr_added.checkSanity();
+			arr_accum.put(arr1);
+			arr_accum.remove(arr2);
+			arr_accum.checkSanity();
+			//System.out.println("Array 1:" + arr1+"\n");
+			//System.out.println("Array 2:" + arr2+"\n");
+			//System.out.println("Combined:" + arr_added+"\n");
+		}
 	}
 
 }

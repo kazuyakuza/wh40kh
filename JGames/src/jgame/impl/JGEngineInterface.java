@@ -88,6 +88,8 @@ public interface JGEngineInterface {
 	public Rectangle getImageBBox(String imgname);
 */
 
+	public static final String JGameVersionString = "3.6";
+
 
 	/** Cursor keys for both regular and mobile keyboard. */
 	public static final int KeyUp=38,KeyDown=40,KeyLeft=37,KeyRight=39;
@@ -159,7 +161,10 @@ public interface JGEngineInterface {
 	* id is already defined, it is removed from any caches, so that the old
 	* image is really unloaded.  This can be used to load large (background)
 	* images on demand, rather than have them all in memory.  Note that the
-	* unloading does not work for images defined from image maps.
+	* unloading does not work for images defined from image maps. Defining
+	* an image with the same name and filename twice does not cause the image
+	* to be reloaded, but keeps the old image.
+	*
 	* @param name  image id
 	* @param tilename  tile id (1-4 characters)
 	* @param collisionid  cid to use for tile collision matching
@@ -172,6 +177,25 @@ public interface JGEngineInterface {
 	public void defineImage(String name, String tilename, int collisionid,
 	String imgfile, String img_op,
 	int top,int left, int width,int height);
+
+	/** Define new image by rotating an already loaded image.  This method
+	 * does not yet work for images defined from image maps! The destination
+	 * image is always a square which is large enough to fit the source image
+	 * at any angle. Its dimension is calculated as: max(width, height,
+	 * 0.75*(width+height)).  The source image is rendered to its center.  
+	 * <p> If an image with this id is already defined,
+	 * it is removed from any caches, so that the old image is really
+	 * unloaded.  This can be used to load large (background) images on
+	 * demand, rather than have them all in memory.  Note that the unloading
+	 * does not work for images defined from image maps.
+	* @param imgname  image id
+	* @param tilename  tile id (1-4 characters)
+	* @param collisionid  cid to use for tile collision matching
+	* @param srcimg image id of (already loaded) source image
+	* @param angle  the angle in radians by which to rotate
+	*/
+	public void defineImageRotated(String imgname, String tilename,
+	int collisionid, String srcimg, double angle);
 
 	/** Define image map, a large image containing a number of smaller images
 	* to use for sprites or fonts.  The images must be in a regularly spaced
@@ -200,7 +224,9 @@ public interface JGEngineInterface {
 	* id is already defined, it is removed from any caches, so that the old
 	* image is really unloaded.  This can be used to load large (background)
 	* images on demand, rather than have them all in memory.  Note that the
-	* unloading does not work for images defined from image maps.
+	* unloading does not work for images defined from image maps. Defining
+	* an image with the same name and filename twice does not cause the image
+	* to be reloaded, but keeps the old image.
 	*
 	* @param imgname  image id
 	* @param tilename  tile id (1-4 characters)
@@ -368,6 +394,7 @@ public interface JGEngineInterface {
 	* @param prefix  ID prefix, null means ignore  
 	* @param suspended_obj  also count suspended objects
 	* @param bbox  collision bounding box, null means ignore */
+	@SuppressWarnings("unchecked")
 	public Vector getObjects(String prefix,int cidmask,boolean suspended_obj,
 	JGRectangle bbox);
 
@@ -510,6 +537,19 @@ public interface JGEngineInterface {
 	* index coordinate center. */
 	public String getTileStr(JGPoint center, int xofs, int yofs);
 
+	/** Convert tile name to integer ID code (as used internally).  The ID
+	* code basically encodes the four characters of the string into the bytes
+	* of the four-byte integer.  The ID code is NOT related to the collision
+	* ID (CID).
+	* @param tilestr tilename, null or empty string -&gt; ID = 0 */
+	public int tileStrToID(String tilestr);
+
+	/** Convert tile ID code to tile name (as used internally).  The ID
+	 * code basically encodes the four characters of the string into the bytes
+	 * of the four-byte integer.  The ID code is NOT related to the collision
+	 * ID (CID).
+	* @param tileid tile ID, tileid==0 -&gt; tilename = empty string */
+	public String tileIDToStr(int tileid);
 
 	/*====== math ======*/
 
@@ -587,6 +627,12 @@ public interface JGEngineInterface {
 	 * @param msg an exit message, null means none */
 	public void exitEngine(String msg);
 
+
+	/** Init engine as component to be embedded in a frame or panel;
+	* call this in your engine constructor.
+	 * @param width  canvas width
+	 * @param height canvas height */
+	public void initEngineComponent(int width,int height);
 
 	/** Init engine as applet; call this in your engine constructor.  Applet
 	 * init() will start the game.
@@ -666,6 +712,9 @@ public interface JGEngineInterface {
 	/** Are we running with an OpenGL backend? */
 	public boolean isOpenGL();
 
+	/** Are we running on Android? */
+	public boolean isAndroid();
+
 	/** Get the virtual width in pixels (not the scaled screen width) */
 	public int viewWidth();
 	/** Get the virtual height in pixels (not the scaled screen height) */
@@ -727,7 +776,7 @@ public interface JGEngineInterface {
 
 	/** Override to define your own initialisations after the engine
 	* initialised.  This method is called by the game thread after
-	* initEngine() or initEngineApplet() was called. */
+	* initEngine(), initEngineApplet(), or initEngineComponent() was called. */
 	abstract public void initGame();
 
 	/** Signal that the engine should start running. May be called by the web
@@ -777,7 +826,8 @@ public interface JGEngineInterface {
 	*/
 	public boolean getVideoSyncedUpdate();
 
-	/** Change offset of playfield view.  If the view would be out of the
+	/** Change offset of playfield view.  The offset will become active 
+	 * at the next frame draw.  If the view would be out of the
 	 * playfield's bounds, the offset is corrected so that it is inside them.
 	 * The offset of the parallax level 0 background image is set to the
 	 * offset as well, the other levels remain unchanged.
@@ -923,6 +973,8 @@ public interface JGEngineInterface {
 	public void setTextOutline(int thickness,JGColor colour);
 
 	/** Platform-independent cursor. */
+	public static int NO_CURSOR        = -1;
+	/** Platform-independent cursor. */
 	public static int DEFAULT_CURSOR   = 0;
 	/** Platform-independent cursor. */
 	public static int CROSSHAIR_CURSOR = 1;
@@ -1059,9 +1111,10 @@ public interface JGEngineInterface {
 	* @param x  x coordinates of the points
 	* @param y  y coordinates of the points
 	* @param col  colour of each point, null means use default colour
+	* @param len number of points
 	* @param pf_relative coordinates are relative to playfield, otherwise view
 	*/
-	public void drawPolygon(double [] x,double [] y, JGColor [] col,
+	public void drawPolygon(double [] x,double [] y, JGColor [] col, int len,
 	boolean filled, boolean pf_relative);
 
 	/** Set colour/thickness and draw rectangle.  Coordinates are relative to
@@ -1093,6 +1146,14 @@ public interface JGEngineInterface {
 	boolean filled, boolean centered,boolean pf_relative,
 	JGColor [] shadecol);
 
+	/** Draw shaded or patterned rectangle.  On non-opengl platforms,
+	* rectangle is drawn in default colour.
+	* @param shadecol colors topleft,topright,botright,botleft corners
+	*/
+	public void drawRect(double x,double y,double width,double height,
+	boolean filled, boolean centered,boolean pf_relative,
+	JGColor [] shadecol,String tileimage);
+
 	/** Set thickness/colour and draw oval.  Coordinates are relative to
 	* playfield.
 	* @param centered indicates (x,y) is center instead of topleft.
@@ -1121,7 +1182,7 @@ public interface JGEngineInterface {
 	* @param pf_relative coordinates are relative to playfield, otherwise view*/
 	public void drawImage(double x,double y,String imgname,boolean pf_relative);
 
-	/** Extended version of drawImage for platforms with opengl capabilities.
+	/** Extended version of drawImage for OpenGL or Android.
 	 * On platforms without support for accelerated blending, rotation,
 	 * scaling, this call is equivalent to drawImage(x,y,imgname,pf_relative).
 	 *
@@ -1134,6 +1195,30 @@ public interface JGEngineInterface {
 	 */
 	public void drawImage(double x,double y,String imgname, JGColor blend_col,
 	double alpha, double rot, double scale, boolean pf_relative);
+
+
+	/** Draw image with given ID, new version.
+	* Coordinates are relative to playfield. */
+	public void drawImage(String imgname,double x,double y);
+
+	/** Draw image with given ID, new version. 
+	* @param pf_relative coordinates are relative to playfield, otherwise view*/
+	public void drawImage(String imgname,double x,double y,boolean pf_relative);
+
+	/** Extended version of drawImage for OpenGL or Android, new version.
+	 * On platforms without support for accelerated blending, rotation,
+	 * scaling, this call is equivalent to drawImage(x,y,imgname,pf_relative).
+	 *
+	 * rotation and scaling are centered around the image center.
+	 *
+	 * @param blend_col colour to blend with image, null=(alpha,alpha,alpha)
+	 * @param alpha  alpha (blending) value, 0=transparent, 1=opaque
+	 * @param rot  rotation of object in degrees (radians)
+	 * @param scale  scaling of object (1 = normal size).
+	 */
+	public void drawImage(String imgname, double x,double y,
+	boolean pf_relative,JGColor blend_col,
+	double alpha, double rot, double scale);
 
 
 	/** Draws string so that (x,y) is the topleft coordinate (align=-1), the
@@ -1237,6 +1322,19 @@ public interface JGEngineInterface {
 	 * of getKeyDesc. The string is trimmed and lowercased. */
 	public int getKeyCode(String keydesc);
 
+	/** returns true if device has accelerometer (currently only android) */
+	public boolean hasAccelerometer();
+
+	/** get accelerometer vector X coordinate */
+	public double getAccelX();
+	/** get accelerometer vector Y coordinate */
+	public double getAccelY();
+	/** get accelerometer vector Z coordinate (positive = towards user) */
+	public double getAccelZ();
+
+	/** get double[3] vector representing acceleration */
+	public double [] getAccelVec();
+
 	/*====== animation ======*/
 
 	/** Define new animation sequence. Speed must be &gt;= 0.
@@ -1261,6 +1359,8 @@ public interface JGEngineInterface {
 	public Animation getAnimation(String id);
 
 
+	/*== file op ==*/
+
 	/** Returns path to writable location for a file with the given name.
 	 * Basically it uses [user.home] / .jgame / [filename], with "/" being the
 	 * system path separator.  In case [user.home] / .jgame does not exist, it
@@ -1270,7 +1370,10 @@ public interface JGEngineInterface {
 	 */
 	public String getConfigPath(String filename);
 
-
+	/** Execute or go to URL (action depends on file type). 
+	* @return  0 if fail; 1 if success; -1 if the status is unknown
+	*/
+	public int invokeUrl(String url,String target);
 
 	/* computation */
 
@@ -1405,6 +1508,68 @@ public interface JGEngineInterface {
 
 	/** Stop all audio channels. */
 	public void stopAudio();
+
+
+	/*===== store =====*/
+
+	/** Writes integer to store under given ID */
+	public void storeWriteInt(String id,int value);
+
+	/** Writes double to store under given ID */
+	public void storeWriteDouble(String id,double value);
+
+	/** Writes string to store under given ID */
+	public void storeWriteString(String id,String value);
+
+	/** Remove record if it exists */
+	public void storeRemove(String id);
+
+	/** Checks if item exists in store */
+	public boolean storeExists(String id);
+
+	/** Reads int from store, use undef if ID not found */
+	public int storeReadInt(String id,int undef);
+
+	/** Reads double from store, use undef if ID not found */
+	public double storeReadDouble(String id,double undef);
+
+	/** Reads String from store, use undef if ID not found */
+	public String storeReadString(String id,String undef);
+
+	/*====== options ======*/
+
+	/** Adds title to be displayed above subsequent items.  Default title of
+	 * initial items is "Preferences".  Call this before defining any items to
+	 * override the default title. */
+	public void optsAddTitle(String title);
+
+	/** adds (int or float) number that can be configured with a slider.
+	* Type is double if decimals!=0, int otherwise.
+	* @param decimals number is int if 0
+	**/
+	public void optsAddNumber(String varname,String title,String desc,
+	int decimals, double lower,double upper,double step, double initial);
+
+	/** Adds boolean that can be configured with a checkbox. Actual type is
+	 * int (0 or 1) */
+	public void optsAddBoolean(String varname,String title,String desc,
+	boolean initial);
+
+	/** Adds enum that can be configured with radio buttons. Actual type is
+	 * int, 0 for first item, 1 for second item, etc. */
+	public void optsAddEnum(String varname,String title,String desc,
+	String [] values, int initial);
+
+	/** Adds "key" option that can be configured by selecting a key or button
+	* on the device.  Actual type is int. */
+	public void optsAddKey(String varname,String title,String desc,int initial);
+
+	/** Adds String that can be configured by typing text. */
+	public void optsAddString(String varname,String title,String desc,
+	int maxlen, boolean isPassword, String initial);
+
+	/** Clear all previous option definitions. */
+	public void optsClear();
 
 }
 

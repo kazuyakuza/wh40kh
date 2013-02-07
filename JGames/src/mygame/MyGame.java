@@ -5,7 +5,8 @@ import jgame.platform.*;
 /** Minimal shooter illustrating Eclipse usage. */
 @SuppressWarnings("serial")
 public class MyGame extends StdGame {
-	public static void main(String[]args) {new MyGame(parseSizeArgs(args,0));}
+	private static MyGame mygame;
+	public static void main(String[]args) {mygame = new MyGame(parseSizeArgs(args,0));}
 	public MyGame() { initEngineApplet(); }
 	public MyGame(JGPoint size) { initEngine(size.x,size.y); }
 	public void initCanvas() { setCanvasSettings(32,24,8,8,null,null,null); }
@@ -39,12 +40,16 @@ public class MyGame extends StdGame {
 		stage++;
 	}
 	JGFont scoring_font = new JGFont("Arial",0,8);
+	
+	private static final double posX = mygame.random(32,mygame.pfWidth()-40);
+	private static final double speedX = mygame.random(-1,1);
+	
 	public class Enemy extends JGObject {
 		double timer=0;
 		public Enemy() {
-			super("enemy",true,random(32,pfWidth()-40),-8,
+			super("enemy",true,posX,-8,
 					2, stage%2==1 ? "block" : "ball",
-					random(-1,1), (1.0+level/2.0), -2 );
+					speedX, (1.0+level/2.0), -2 );
 		}
 		public void move() {
 			timer += gamespeed;
@@ -67,7 +72,7 @@ public class MyGame extends StdGame {
 			if (getKey(key_left)  && x > xspeed)               xdir=-1;
 			if (getKey(key_right) && x < pfWidth()-32-yspeed)  xdir=1;
 			if (getKey(key_fire) && countObjects("bullet",0) < 2) {
-				new JGObject("bullet",true,x,y,4,"bary", 0,-5, -2);
+				new JGObject("bullet",true,(double)x,(double)y,4,"bary",(double) 0,(double)-5, -2);
 				clearKey(key_fire);
 			}
 		}
