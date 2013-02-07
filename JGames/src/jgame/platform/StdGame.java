@@ -6,8 +6,8 @@ import java.awt.event.*;
 import java.io.*;
 /** A basic framework for a game.  It supports an animation and game timer,
 * object creation at fixed intervals, score, lives, levels, configurable keys.
-* There are title, start-level, next-level, death, and game-over sequences.
-* Todo: highscores, key configuration file and GUI.
+* There are title, start-level, next-level, death, game-over, and highscore
+* sequences.
 
 * <p>To initialise this class, use the regular initEngine (from main), or
 * initEngineApplet (from parameterless constructor).  You can supply the width
@@ -69,6 +69,7 @@ import java.io.*;
 * default), pause game (through the key_pausegame, which defaults to 'P'), and
 * program exit (key_quitprogram, default Escape).
 */
+@SuppressWarnings("serial")
 public abstract class StdGame extends JGEngine {
 
 	// XXX can levelDone and lifeLost be triggered simultaneously? (ramjet)
@@ -77,6 +78,12 @@ public abstract class StdGame extends JGEngine {
 
 	/** Flag indicating that audio is enabled */
 	public boolean audioenabled=true;
+
+	/** Flag indicating that sound enable dialog should be shown at startup */
+	public boolean audio_dialog_at_startup=true;
+	/** flag indicating that accelerometer set zero point menu should be
+	 * active. */
+	public boolean accel_set_zero_menu=false;
 
 	/** Key for starting the game, JRE default is space, MIDP default is "*" */
 	public int key_startgame = ' ';
@@ -234,6 +241,15 @@ public abstract class StdGame extends JGEngine {
 	public String highscore_entry="You have a high score!";
 
 
+	public double [] getAccelZeroVector() {
+		return new double[] {0,0,1};
+	}
+
+	/** get zero vector corrected acceleration vector (slow) */
+	public double [] getAccelZeroCorrected() {
+		return getAccelVec();
+	}
+
 	/** Define highscore table. */ 
 	public void setHighscores(int nr_highscores, Highscore default_hisc,
 	int maxnamelen) {
@@ -284,9 +300,13 @@ public abstract class StdGame extends JGEngine {
 
 	/** Initialise the game when a new game is started.  Default sets level,
 	 * stage, score to 0, and lives to initial_lives. */
-	public void initNewGame() {
-		level=0;
-		stage=0;
+	//public void initNewGame() { initNewGame(0); }
+	/** Initialise the game when a new game is started.  Default sets
+	 * stage, score to 0, and lives to initial_lives. Level is set to supplied
+	 * argument. */
+	public void initNewGame(int level_selected) {
+		level=level_selected;
+		stage=level;
 		score=0;
 		lives=initial_lives;
 	}
@@ -311,6 +331,30 @@ public abstract class StdGame extends JGEngine {
 	public void incrementLevel() {
 		level++;
 		stage++;
+	}
+
+	/** Start game at level 0 */
+	public void startGame() {
+		startGame(0);
+	}
+	/** Start game at given level */
+	public void startGame(int level_selected) {
+		gametime=0;
+		initNewGame(level_selected);
+		defineLevel();
+		initNewLife();
+		// code duplicated in levelDone
+		clearKey(key_continuegame);
+		seqtimer=0;
+		if (startgame_ticks > 0) {
+			setGameState("StartLevel");
+			addGameState("StartGame");
+			if (startgame_ingame) addGameState("InGame");
+			new JGTimer(startgame_ticks,true,"StartLevel") {
+				public void alarm() { setGameState("InGame"); } };
+		} else {
+			setGameState("InGame");
+		}
 	}
 
 	/* state transition functions */
@@ -537,22 +581,7 @@ public abstract class StdGame extends JGEngine {
 				stop();
 			}
 			if (getKey(key_startgame)) {
-				gametime=0;
-				initNewGame();
-				defineLevel();
-				initNewLife();
-				// code duplicated in levelDone
-				clearKey(key_continuegame);
-				seqtimer=0;
-				if (startgame_ticks > 0) {
-					setGameState("StartLevel");
-					addGameState("StartGame");
-					if (startgame_ingame) addGameState("InGame");
-					new JGTimer(startgame_ticks,true,"StartLevel") {
-						public void alarm() { setGameState("InGame"); } };
-				} else {
-					setGameState("InGame");
-				}
+				startGame();
 			}
 			if (highscores!=null) {
 				if (getKey(key_continuegame)) {

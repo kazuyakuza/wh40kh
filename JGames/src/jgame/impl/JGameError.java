@@ -1,5 +1,6 @@
 package jgame.impl;
 /** Exception used for passing error conditions within JGame */
+@SuppressWarnings("serial")
 public class JGameError extends Error {
 	String msg;
 	boolean fatal=false;

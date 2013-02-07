@@ -83,6 +83,7 @@ public class Highscore {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static Highscore [] load(InputStream in)
 	throws IOException {
 		Vector highscores=new Vector(20,40);

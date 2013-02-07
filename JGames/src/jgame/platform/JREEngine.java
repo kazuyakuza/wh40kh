@@ -17,6 +17,7 @@ import java.lang.reflect.*;
 import java.awt.event.*;
 
 /** Basic engine functionality for JRE platforms: input handling, audio, window, misc. */
+@SuppressWarnings("unused")
 class JREEngine
 implements MouseListener, MouseMotionListener, FocusListener,
 KeyListener, WindowListener {
@@ -29,8 +30,8 @@ KeyListener, WindowListener {
 	void updateMouse(MouseEvent e,boolean pressed, boolean released,
 	boolean inside) {
 		mousepos = e.getPoint();
-		mousepos.x = (int)(mousepos.x/el.x_scale_fac);
-		mousepos.y = (int)(mousepos.y/el.y_scale_fac);
+		mousepos.x = (int)((mousepos.x/*-el.canvas_xofs*/)/el.x_scale_fac);
+		mousepos.y = (int)((mousepos.y/*-el.canvas_yofs*/)/el.y_scale_fac);
 		mouseinside=inside;
 		int button=0;
 		if ((e.getModifiers()&InputEvent.BUTTON1_MASK)!=0) button=1;
@@ -149,7 +150,8 @@ KeyListener, WindowListener {
 	Frame my_frame;
 	/** indicates if application window should have decoration */
 	boolean win_decoration=true;
-
+	/** indicates if an application window should be created, N/A for applets */
+	boolean create_frame=true;
 
 	/* mouse */
 
@@ -297,6 +299,7 @@ KeyListener, WindowListener {
 
 	/** Note: this assumes that primitive type wrappers:
 	* Integer, Char, Boolean, Double, Float are always primitive types */
+	@SuppressWarnings("unchecked")
 	static Method getMethod(Class cls,String name,Object [] args) {
 		Class [] args_cls = new Class[args.length];
 		for (int i=0; i<args.length; i++) {
@@ -348,10 +351,12 @@ KeyListener, WindowListener {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	static boolean existsMethod(Class cls,String name,Object [] args) {
 		return getMethod(cls,name,args)!=null;
 	}
 
+	@SuppressWarnings("unchecked")
 	static boolean existsMethod(Class cls,String name,Class [] args) {
 		try {
 			cls.getMethod(name, args);
@@ -425,28 +430,34 @@ KeyListener, WindowListener {
 
 	/** channelname -} clipid -} AudioClip.  Clipid and AudioClip are not
 	* defined until played at least once.  */
+	@SuppressWarnings("unchecked")
 	Hashtable channels = new Hashtable();
 
 	/** channelname -} clipid.  Sample has been played last as non-loop. */
+	@SuppressWarnings("unchecked")
 	Hashtable lastplayed = new Hashtable();
 	/** channelname -} clipid.  Sample is playing as loop. */
+	@SuppressWarnings("unchecked")
 	Hashtable islooping = new Hashtable();
 
 	/** clipd -} "yes". Sample has already been triggered on an unnamed
 	* channel during this frame. */
+	@SuppressWarnings("unchecked")
 	Hashtable clipstriggered = new Hashtable();
 
 	int unnamedchnr = 0;
-	int nr_unnamedch = 6;
+	int nr_unnamedch = 12;
 
 	boolean audioenabled=true;
 
 	/** signal to audio subsystem that new frame has started. */
+	@SuppressWarnings("unchecked")
 	void audioNewFrame() {
 		clipstriggered = new Hashtable();
 	}
 
 	/** Enable audio, restart any audio loops. */
+	@SuppressWarnings("unchecked")
 	public void enableAudio() {
 		if (audioenabled==true) return;
 		audioenabled=true;
@@ -463,6 +474,7 @@ KeyListener, WindowListener {
 	/** Disable audio, stop all currently playing audio.  Audio commands will
 	* be ignored, except that audio loops (music, ambient sounds) are
 	* remembered and will be restarted once audio is enabled again. */
+	@SuppressWarnings("unchecked")
 	public void disableAudio() {
 		if (audioenabled==false) return;
 		audioenabled=false;
@@ -492,6 +504,7 @@ KeyListener, WindowListener {
 		return (String)lastplayed.get(channel);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void playAudio(Applet applet,String clipid) {
 		if (clipstriggered.containsKey(clipid)) return;
 		clipstriggered.put(clipid,"yes");
@@ -499,6 +512,7 @@ KeyListener, WindowListener {
 		unnamedchnr = (unnamedchnr+1)%nr_unnamedch;
 	}
 
+	@SuppressWarnings("unchecked")
 	public void playAudio(Applet applet,String channel,String clipid,boolean loop) {
 		AudioClip clip = null;
 		Hashtable chan = (Hashtable) channels.get(channel);
@@ -540,6 +554,7 @@ KeyListener, WindowListener {
 		lastplayed.put(channel,clipid);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void stopAudio(String channel) {
 		String lastclipid = (String) lastplayed.get(channel);
 		if (lastclipid==null) return;
@@ -550,10 +565,147 @@ KeyListener, WindowListener {
 		islooping.remove(channel);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void stopAudio() {
 		for (Enumeration e=channels.keys(); e.hasMoreElements(); ) {
 			stopAudio((String)e.nextElement());
 		}
 	}
+
+	String localstorefile;
+
+	@SuppressWarnings("unchecked")
+	Hashtable localstore = new Hashtable();
+
+	@SuppressWarnings("unchecked")
+	void storeInit() {
+		localstorefile = getConfigPath(eng.getClass().getName()+".store");
+		if (localstorefile==null) return;
+		try {
+			BufferedReader reader;
+			try {
+				File file = new File(localstorefile);
+				// do nothing if file does not yet exist
+				if (!file.exists()) return;
+				reader = new BufferedReader(new FileReader(file));
+			} catch (java.security.AccessControlException e) {
+				//we're not allowed to look at the file, try it as url
+				URL url = new URL(localstorefile);
+				reader = new BufferedReader(new InputStreamReader(
+						url.openStream()));
+			}
+			//StringBuffer text = new StringBuffer();
+			String line;
+			while (true) {
+				line = reader.readLine();
+				if (line==null) break;
+				String name = line.substring(0,line.indexOf("\t"));
+				String rest1 = line.substring(line.indexOf("\t")+1);
+				String type = rest1.substring(0,rest1.indexOf("\t"));
+				String value = rest1.substring(rest1.indexOf("\t")+1);
+				if (type.equals("int")) {
+					localstore.put(name,new Integer(Integer.parseInt(value)));
+				} else if (type.equals("double")) {
+					localstore.put(name,new Double(Double.parseDouble(value)));
+				} else if (type.equals("String")) {
+					localstore.put(name,value);
+				} else {
+					throw new JGameError("Unknown type "+type);
+				}
+			}
+			reader.close();
+		} catch (IOException e) {
+			throw new JGameError("Error reading file '"+localstorefile+"'.",false);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void storeWrite() { try {
+		if (localstorefile==null) return;
+		PrintWriter writer=new PrintWriter(
+			new FileWriter(new File(localstorefile)) );
+		for (Enumeration e=localstore.keys(); e.hasMoreElements(); ) {
+			String k = (String)e.nextElement();
+			Object o = localstore.get(k);
+			if (o instanceof Integer) {
+				writer.println(k+"\tint\t"+o);
+			} else if (o instanceof Double) {
+				writer.println(k+"\tdouble\t"+o);
+			} else if (o instanceof String) {
+				writer.println(k+"\tString\t"+o);
+			}
+		}
+		writer.close();
+	} catch (IOException e) {
+		throw new JGameError("Error writing file '"+localstorefile+"'.",false);
+	} }
+
+	@SuppressWarnings("unchecked")
+	public void storeWriteInt(String id,int value) {
+		localstore.put(id,new Integer(value));
+		storeWrite();
+	}
+
+	@SuppressWarnings("unchecked")
+	public void storeWriteDouble(String id,double value) {
+		localstore.put(id,new Double(value));
+		storeWrite();
+	}
+
+	// XXX strings are not escaped, this means \n is not allowed.
+	// fix: escape \n as '\n' and '\' as '\\'
+
+	@SuppressWarnings("unchecked")
+	public void storeWriteString(String id,String value) {
+		localstore.put(id,value);
+		storeWrite();
+	}
+
+	public void storeRemove(String id) {
+		localstore.remove(id);
+		storeWrite();
+	}
+
+	public boolean storeExists(String id) {
+		return localstore.containsKey(id);
+	}
+
+	public int storeReadInt(String id,int undef) {
+		if (!localstore.containsKey(id)) return undef;
+		return ((Integer)localstore.get(id)).intValue();
+	}
+
+	public double storeReadDouble(String id,double undef) {
+		if (!localstore.containsKey(id)) return undef;
+		return ((Double)localstore.get(id)).doubleValue();
+	}
+
+	public String storeReadString(String id,String undef) {
+		if (!localstore.containsKey(id)) return undef;
+		return (String)localstore.get(id);
+	}
+
+	/*====== options ======*/
+
+	public void optsAddTitle(String title) {}
+
+	public void optsAddNumber(String varname,String title,String desc,
+	int decimals, double lower,double upper,double step, double initial) {}
+
+	public void optsAddBoolean(String varname,String title,String desc,
+	boolean initial) {}
+
+	public void optsAddEnum(String varname,String title,String desc,
+	String [] values, int initial) {}
+
+	public void optsAddKey(String varname,String title,String desc,int initial){
+	}
+
+	public void optsAddString(String varname,String title,String desc,
+	int maxlen, boolean isPassword, String initial) {}
+
+	public void optsClear() {}
+
+
 }
 

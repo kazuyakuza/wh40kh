@@ -404,7 +404,8 @@ public class JGObject {
 		this.expiry=expiry;
 	}
 
-	/** Create object with given tile bbox.
+	/** Create object with given tile bbox, old style.  Old style constructors
+	 * are not compatible with the JGame Flash parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -417,7 +418,9 @@ public class JGObject {
 		setTileBBox(tilebbox_x,tilebbox_y,tilebbox_width,tilebbox_height);
 	}
 
-	/** Create object with given tile bbox and expiry.
+	/** Create object with given tile bbox and expiry, old style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -432,7 +435,9 @@ public class JGObject {
 		this.expiry=expiry;
 	}
 
-	/** Create object with given absolute speed.
+	/** Create object with given absolute speed, old style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -445,7 +450,9 @@ public class JGObject {
 		setSpeedAbs(xspeed,yspeed);
 	}
 
-	/** Create object with given absolute speed and expiry.
+	/** Create object with given absolute speed and expiry, old style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -459,7 +466,9 @@ public class JGObject {
 		this.expiry = expiry;
 	}
 
-	/** Create object with given tile bbox and absolute speed.
+	/** Create object with given tile bbox and absolute speed, old style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -474,7 +483,9 @@ public class JGObject {
 		setSpeedAbs(xspeed,yspeed);
 	}
 
-	/** Create object with given tile bbox, absolute speed, expiry.
+	/** Create object with given tile bbox, absolute speed, expiry, old style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -490,7 +501,9 @@ public class JGObject {
 		this.expiry = expiry;
 	}
 
-	/** Create object with given direction/speed, expiry.
+	/** Create object with given direction/speed, expiry, old style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -504,7 +517,10 @@ public class JGObject {
 		this.expiry = expiry;
 	}
 
-	/** Create object with given tile bbox, direction/speed, expiry.
+	/** Create object with given tile bbox, direction/speed, expiry, old
+	 * style.
+	* Old style constructors are not compatible with the JGame Flash
+	* parameter order.
 	* @param unique_id  append name with unique ID if unique_id set
 	* @param gfxname  id of animation or image, null = no image */
 	public JGObject (String name, boolean unique_id,
@@ -516,6 +532,62 @@ public class JGObject {
 				name + (unique_id ? ""+(next_id++) : "" ), collisionid );
 		setGraphic(gfxname);
 		setTileBBox(tilebbox_x,tilebbox_y,tilebbox_width,tilebbox_height);
+		setDirSpeed(xdir,ydir,xspeed,yspeed);
+		this.expiry = expiry;
+	}
+
+
+	/** Flash style constructors */
+
+	/** Create object with given absolute speed, expiry, new
+	 * style.  New-style constructors enable easier porting to JGame Flash.
+	* @param unique_id  append name with unique ID if unique_id set
+	* @param gfxname  id of animation or image, null = no image */
+	public JGObject (String name, boolean unique_id,
+	double x,double y,int collisionid,String gfxname,
+	int expiry,
+	double xspeed,double yspeed) {
+		setPos(x,y);
+		initObject(default_engine,
+				name + (unique_id ? ""+(next_id++) : "" ), collisionid );
+		setGraphic(gfxname);
+		setTileBBox(tilebbox.x,tilebbox.y,tilebbox.width,tilebbox.height);
+		setSpeedAbs(xspeed,yspeed);
+		this.expiry = expiry;
+	}
+
+	/** Create object with given direction/speed, expiry, new
+	 * style.  New-style constructors enable easier porting to JGame Flash.
+	* @param unique_id  append name with unique ID if unique_id set
+	* @param gfxname  id of animation or image, null = no image */
+	public JGObject (String name, boolean unique_id,
+	double x,double y,int collisionid,String gfxname,
+	int expiry,
+	double xspeed,double yspeed,
+	int xdir,int ydir) {
+		setPos(x,y);
+		initObject(default_engine,
+				name + (unique_id ? ""+(next_id++) : "" ), collisionid );
+		setGraphic(gfxname);
+		setDirSpeed(xdir,ydir,xspeed,yspeed);
+		this.expiry = expiry;
+	}
+
+	/** Create object with given tile bbox, direction/speed, expiry, new
+	 * style.  New-style constructors enable easier porting to JGame Flash.
+	* @param unique_id  append name with unique ID if unique_id set
+	* @param gfxname  id of animation or image, null = no image */
+	public JGObject (String name, boolean unique_id,
+	double x,double y,int collisionid,String gfxname,
+	int expiry,
+	double xspeed,double yspeed,
+	int xdir,int ydir,
+	JGRectangle tilebbox) {
+		setPos(x,y);
+		initObject(default_engine,
+				name + (unique_id ? ""+(next_id++) : "" ), collisionid );
+		setGraphic(gfxname);
+		setTileBBox(tilebbox.x,tilebbox.y,tilebbox.width,tilebbox.height);
 		setDirSpeed(xdir,ydir,xspeed,yspeed);
 		this.expiry = expiry;
 	}
@@ -663,9 +735,9 @@ public class JGObject {
 		}
 	}
 
-	/** Get x position of previous frame. */
+	/** Get x position of previous frame. Returns 0 if first frame. */
 	public double getLastX() { return lastx; }
-	/** Get y position of previous frame. */
+	/** Get y position of previous frame. Returns 0 if first frame. */
 	public double getLastY() { return lasty; }
 
 
@@ -1032,11 +1104,27 @@ public class JGObject {
 		return true;
 	}
 
+	/* computation */
+
 	/** A Boolean AND shorthand to use for collision;
 	* returns (value&amp;mask) != 0. */
 	public static boolean and(int value, int mask) {
 		return (value&mask) != 0;
 	}
+
+	public double random(double min, double max) {
+		return eng.random(min,max);
+	}
+
+	public double random(double min, double max, double interval) {
+		return eng.random(min,max,interval);
+	}
+
+	public int random(int min, int max, int interval) {
+		return eng.random(min,max,interval);
+	}
+
+
 
 	/** Do automatic animation.  Is automatically called by the JGEngine
 	 * implementation once for every

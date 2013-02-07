@@ -49,7 +49,7 @@ public class Example6 extends JGEngine {
 			       // the right moment (sprite size / 2).
 		);
 		// place some random objects that move up and down
-		for (int i=0; i<40; i++) {
+		for (int i=0; i<100; i++) {
 			new JGObject("muyobj", true, // name
 				random(0,pfWidth()-20), random(0,pfHeight()-20), // pos
 				1, "ball", // cid, sprite

@@ -8,12 +8,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import Play_Ball_Test_Game.Recursos.getRecurso;
+
 /** Contains the platform-independent game logic. */
 public class EngineLogic {
 
-	JGImage imageutil;
+	public JGImage imageutil;
 
 	Random random;
+
+	/** Platform implementation decides if window is resizeable.  Resizeable
+	* requires the implementation to keep the original unscaled images in
+	* memory.  Turn it off if you are short on memory. */
+	public boolean is_resizeable=true;
 
 	/** make_bitmask indicates what to do with transparent images.
 	* true = make bitmask false=make translucent */
@@ -28,6 +35,7 @@ public class EngineLogic {
 	* Indirectly affected: *_scale_fac canvas_*ofs */
 	boolean prescale;
 
+	@SuppressWarnings("unchecked")
 	public EngineLogic (JGImage imageutil,
 	boolean make_bitmask,boolean prescale) {
 		this.imageutil=imageutil;
@@ -57,11 +65,14 @@ public class EngineLogic {
 	/* game state. These vectors are always reused and not reconstructed. */
 
 	/** Engine game state */
+	@SuppressWarnings("unchecked")
 	public Vector gamestate=new Vector(10,20);
 	/** New engine game state to be assigned at the next frame */
+	@SuppressWarnings("unchecked")
 	public Vector gamestate_nextframe=new Vector(10,20);
 	/** New game states which the game has to transition to, and for which
 	 * start[state] have to be called. */
+	@SuppressWarnings("unchecked")
 	public Vector gamestate_new=new Vector(10,20);
 	/** indicates when engine is inside a parallel object update (moveObjects,
 	 * check*Collision) */
@@ -70,6 +81,7 @@ public class EngineLogic {
 	boolean in_parallel_upd=false;
 
 
+	@SuppressWarnings("unchecked")
 	private Vector timers = new Vector(20,40);
 
 
@@ -81,6 +93,7 @@ public class EngineLogic {
 	public String exit_message="JGEngine exited successfully";
 
 
+	@SuppressWarnings("unchecked")
 	Hashtable animations = new Hashtable();
 
 
@@ -88,24 +101,34 @@ public class EngineLogic {
 
 	/** Strings -&gt; JGImages, original size,
 	* nonexistence means there is no image */
+	@SuppressWarnings("unchecked")
 	public Hashtable images_orig = new Hashtable();
 	/** JGPoint sizes of original images */
+	@SuppressWarnings("unchecked")
 	public Hashtable image_orig_size = new Hashtable();
 	/** Strings -&gt; JGImages, screen size, nonexistence indicates image
 	* is not cached and needs to be generated from images_orig */
+	@SuppressWarnings("unchecked")
 	public Hashtable images = new Hashtable();
 
 	/** indicates that image is defined even if it has no Image */
+	@SuppressWarnings("unchecked")
 	public Hashtable images_exists= new Hashtable(); 
+	@SuppressWarnings("unchecked")
 	public Hashtable images_transp = new Hashtable(); 
 	/** Hashtable: name to filename. Indicates that image with given name
 	* is loaded from given filename */
+	@SuppressWarnings("unchecked")
 	public Hashtable images_loaded= new Hashtable(); 
 		/* Integers -> Objects, existence indicates transparency */
+	@SuppressWarnings("unchecked")
 	public Hashtable images_tile = new Hashtable(); /* Integers -> Strings */
+	@SuppressWarnings("unchecked")
 	public Hashtable images_bbox = new Hashtable(); /* Strings -> Rectangles */
+	@SuppressWarnings("unchecked")
 	public Hashtable images_tilecid = new Hashtable(); /* Integers -> Integers */
 
+	@SuppressWarnings("unchecked")
 	public Hashtable imagemaps = new Hashtable(); /* Strings->ImageMaps*/
 
 	public int alpha_thresh=128;
@@ -119,6 +142,7 @@ public class EngineLogic {
 	 * Engine.doFrameAll and Canvas.paint */
 	public SortedArray objects=new SortedArray(80);    /* String->JGObject */
 	SortedArray obj_to_remove = new SortedArray(40); /* String */
+	@SuppressWarnings("unchecked")
 	Vector obj_spec_to_remove = new Vector(20,40); /* (String,Int) */
 	SortedArray obj_to_add = new SortedArray(40); /* JGObject */
 
@@ -171,7 +195,7 @@ public class EngineLogic {
 	/** Derived offset information, useful for modulo. */
 	public int xofs_mid, yofs_mid;
 
-	/** min_scale_fac is min (scalex,scaley). These are is 1.0 until width,
+	/** min_scale_fac is min (scalex,scaley). These are 1.0 until width,
 	* height are defined */
 	public double x_scale_fac=1.0, y_scale_fac=1.0, min_scale_fac=1.0;
 
@@ -213,6 +237,7 @@ public class EngineLogic {
 
 	/** BGImages: images to use behind transparent tiles.  Element 0 is always
 	 * defined.  Null indicates empty image. */
+	@SuppressWarnings("unchecked")
 	public Vector bg_images = new Vector(8,20);
 
 	//public String bg_image=null;
@@ -244,6 +269,7 @@ public class EngineLogic {
 	 * indicating a token boundary (multiple characters are not used here).
 	 * The split characters are not included.
 	*/
+	@SuppressWarnings("unchecked")
 	public static Vector tokenizeString(String str,char splitchar) {
 		Vector tok = new Vector(20,50);
 		int curidx=0,nextidx;
@@ -285,11 +311,13 @@ public class EngineLogic {
 
 	/** Generate absolute path from relative path by prepending the package
 	 * name of this class (and converting the "." to "/".  A
-	 * relative path is a path without "/" at the beginning.  Absolute paths
-	 * are not changed. */
+	 * relative path is a path without "/" or an URL protocol at the beginning.
+	 * Absolute paths are not changed. */
+	@SuppressWarnings("unchecked")
 	public String getAbsolutePath(Object pkg_obj,String filename) {
-		if (filename.indexOf("/")==0) {
-			// path starts with "/": do not change
+		if (filename.indexOf("/")==0
+		||   (filename.indexOf("://")>=0 && filename.indexOf("://")<=5) ) {
+			// path starts with "/" or protocol: do not change
 			return filename;
 		} else {
 			// path does not start with "/": prepend package name
@@ -329,8 +357,8 @@ public class EngineLogic {
 		//Integer tileid_obj = new Integer(tileid);
 		String imgid = (String)images_tile.get(tileid);
 		if (imgid==null) return null;
-		// XXX we assume images have already been converted from images_orig
-		return images.get(imgid);
+		if (!is_resizeable) return (JGImage)images.get(imgid);
+		return getImage(imgid);
 	}
 
 	/** Gets (non-scaled) image's physical size directly. */
@@ -339,11 +367,14 @@ public class EngineLogic {
 	}
 
 	/** Quick version does not scale image on demand, and does not
-	* give an error when image is not defined. */
+	* give an error when image is not defined.  DEPRECATED. */
 	public JGImage getImageQuick(String imgname) {
 		return (JGImage)images.get(imgname);
 	}
 
+	/** Slow version, (re)scales image on demand if original image is
+	* present. */
+	@SuppressWarnings("unchecked")
 	public JGImage getImage(String imgname) {
 		if (!existsImage(imgname)) throw new JGameError(
 				"Image '"+imgname+"' not defined.",true );
@@ -379,7 +410,9 @@ public class EngineLogic {
 		return img;
 	}
 
-
+	public JGImage getImageOrig(String imgname) {
+		return (JGImage)images_orig.get(imgname);
+	}
 
 	/** protected */
 	public JGImage getSubImage(String mapname,int imgnr) {
@@ -396,6 +429,7 @@ public class EngineLogic {
 	}
 
 
+	@SuppressWarnings("unchecked")
 	public void defineMedia(JGEngineInterface eng,String filename) {
 		int lnr=1;
 		int nr_lines=0;
@@ -481,7 +515,8 @@ public class EngineLogic {
 	}
 
 	/** Split a ';' separated list of words */
-	String [] splitList(String liststr) {
+	@SuppressWarnings("unchecked")
+	public static String [] splitList(String liststr) {
 		Vector list = tokenizeString(liststr,';');
 		String [] list_arr = new String [list.size()];
 		int i=0;
@@ -498,7 +533,8 @@ public class EngineLogic {
 	/** Remove all information associated with image, including any cached
 	* image data. Does not unload any image maps.  XXX not quite finished;
 	* publish this method when finished. */
-	void undefineImage(String name) {
+	@SuppressWarnings("unchecked")
+	public void undefineImage(String name) {
 		imageutil.purgeImage((String)images_loaded.get(name));
 		images_orig.remove(name);
 		image_orig_size.remove(name);
@@ -515,20 +551,36 @@ public class EngineLogic {
 		}
 		// XXX association with tile is not yet removed; as we cannot obtain
 		// the tile name from the image name
-		//Integer tileid = new Integer(tilestrToInt(tilename));
+		//Integer tileid = new Integer(tileStrToID(tilename));
 		//Hashtable images_tile = new Hashtable(); /* Integers -> Strings */
 		//Hashtable images_tilecid = new Hashtable(); /* Integers -> Integers */
 	}
 
+	@SuppressWarnings("unchecked")
 	public void defineImage(Object pkg_obj,String name, String tilename,
 	int collisionid, String imgfile, String img_op,
 	int top,int left, int width,int height) {
-		if (images_loaded.containsKey(name)) {
+		if ( images_loaded.containsKey(name)
+		&&  !images_loaded.get(name).equals(imgfile)) {
+			// if associated file is not the same, undefine old image
 			undefineImage(name);
 		}
 		JGImage img=null;
 		if (!imgfile.equals("null")) {
-			imgfile = getAbsolutePath(pkg_obj,imgfile);
+			
+			/* BEGIN - CHANGE BY KAZUYA */
+			/* For load an image from diferent url */
+			
+			if (! getRecurso.needChangeURL())
+				imgfile = getAbsolutePath(pkg_obj,imgfile);
+			
+			/* END   - CHANGE BY KAZUYA */
+			/* BEGIN - ORIGINAL */
+			
+			//imgfile = getAbsolutePath(pkg_obj,imgfile);
+			
+			/* END - ORIGINAL */
+			
 			img = imageutil.loadImage(imgfile);
 			images_loaded.put(name,imgfile);
 		}
@@ -539,6 +591,7 @@ public class EngineLogic {
 	/** passing -1 to top,left,width,height indicates these have to be taken
 	* from the image dimensions.
 	*/
+	@SuppressWarnings("unchecked")
 	public void defineImage(String name, String tilename, int collisionid,
 	JGImage img, String img_op,
 	int top,int left, int width,int height) {
@@ -559,7 +612,7 @@ public class EngineLogic {
 			image_orig_size.put(name,img.getSize());
 		}
 		images_exists.put(name, "yes");
-		Integer tileid = new Integer(tilestrToInt(tilename));
+		Integer tileid = new Integer(tileStrToID(tilename));
 		if (img==null || !img.isOpaque(alpha_thresh))
 			images_transp.put(tileid, "yes");
 		images_tile.put(tileid, name);
@@ -573,12 +626,34 @@ public class EngineLogic {
 			else           size = img.getSize();
 			images_bbox.put(name,new JGRectangle(0,0,size.x,size.y));
 		}
-		getImage(name); /* pre-load scaled image */
-		//throw away unscaled image to save memory
-		// XXX remove images_orig altogether
-		images_orig.remove(name);
+		/* pre-load scaled image to prevent hiccups during gameplay*/
+		getImage(name); 
+		if (!is_resizeable) {
+			// throw away unscaled image to save memory
+			images_orig.remove(name);
+		}
 	}
 
+	public void defineImageRotated(Object pkg_obj,String name, String tilename,
+	int collisionid, String srcname, double angle) {
+		//JGImage src = (JGImage)images_orig.get(srcname);
+		//if (src == null) throw new JGameError(
+		//		"Source image '"+srcname+"' not found.",true );
+		if ( images_loaded.containsKey(name) ) {
+			undefineImage(name);
+		}
+		String imgfile = (String)images_loaded.get(srcname);
+		if (imgfile.equals("null")) throw new JGameError(
+				"Source image '"+srcname+"' does not have a filename.",true );
+
+		imgfile = getAbsolutePath(pkg_obj,imgfile);
+		JGImage img = imageutil.loadImage(imgfile);
+		defineImage(name,tilename, collisionid, img.rotateAny(angle),
+			"-", 0,0, -1,-1);
+	}
+
+
+	@SuppressWarnings("unchecked")
 	public void defineImageMap(Object pkg_obj,String mapname, String imgfile,
 		int xofs,int yofs, int tilex,int tiley, int skipx,int skipy) {
 		imgfile = getAbsolutePath(pkg_obj,imgfile);
@@ -697,8 +772,10 @@ public class EngineLogic {
 	}
 
 	/** Add new object now.  Old object with the same name is replaced
-	 * immediately, and its remove() method called.  */
-	void addObject(JGObject obj) {
+	 * immediately, and its remove() method called.  Skips calling objects.put
+	 * when skip_actual_add=true.  This is useful if the caller optimises the
+	 * objects.add by adding an entire array at once */
+	void addObject(JGObject obj, boolean skip_actual_add) {
 		int idx = objects.get(obj.getName());
 		if (idx >= 0) {
 			JGObject old_obj = (JGObject)objects.values[idx];
@@ -707,7 +784,8 @@ public class EngineLogic {
 			// ensure any dispose stuff in the object is called
 			old_obj.remove();
 		}
-		objects.put(obj.getName(),obj);
+		if (!skip_actual_add)
+			objects.put(obj.getName(),obj);
 	}
 
 	/** Mark object for removal. */
@@ -729,6 +807,7 @@ public class EngineLogic {
 	}
 
 	/** Mark all objects with given spec for removal. */
+	@SuppressWarnings("unchecked")
 	void markRemoveObjects(String prefix,int cidmask,boolean suspended_obj) {
 		obj_spec_to_remove.addElement(prefix);
 		obj_spec_to_remove.addElement(new Integer(cidmask));
@@ -761,6 +840,7 @@ public class EngineLogic {
 					if (suspended_obj || !o.is_suspended) {
 						// Note: remove element inside element enumeration
 						obj_to_add.remove(obj_to_add.keys[i]);
+						o.removeDone();
 					}
 				}
 			}
@@ -769,6 +849,7 @@ public class EngineLogic {
 
 
 	/** protected, remove objects marked for removal. */
+	@SuppressWarnings("unchecked")
 	public void flushRemoveList() {
 		//for (Enumeration e=obj_to_remove.elements(); e.hasMoreElements();) {
 		//	String name = (String)e.nextElement();
@@ -808,8 +889,10 @@ public class EngineLogic {
 		// XXX we have to add one by one because we have to call the dispose
 		// method of the objects that are replaced
 		for (int i=0; i<obj_to_add.size; i++) {
-			addObject((JGObject)obj_to_add.values[i]);
+			addObject((JGObject)obj_to_add.values[i],true);
 		}
+		// actually add objects to array in one go for faster performance
+		objects.put(obj_to_add);
 		obj_to_add.clear();
 	}
 
@@ -1051,9 +1134,11 @@ public class EngineLogic {
 	/* objects from engine */
 
 
+	@SuppressWarnings("unchecked")
 	public Vector getObjects(String prefix,int cidmask,boolean suspended_obj,
 	JGRectangle bbox) {
 		Vector objects_v = new Vector(50,100);
+		@SuppressWarnings("unused")
 		int nr_obj=0;
 		JGRectangle obj_bbox = tmprect1;
 		int firstidx=getFirstObjectIndex(prefix);
@@ -1244,11 +1329,13 @@ public class EngineLogic {
 
 
 
+	@SuppressWarnings("unchecked")
 	public void setBGImage(String bgimg, int depth, boolean wrapx,
 	boolean wrapy) {
 		while (bg_images.size() < depth+1) bg_images.addElement(null);
 		if (bgimg!=null) {
-			if (!images.containsKey(bgimg))
+			if (!images.containsKey(bgimg) 
+			&&  !images_orig.containsKey(bgimg))
 				throw new JGameError("unknown BG image "+bgimg);
 			BGImage newimg = new BGImage(bgimg,wrapx,wrapy);
 			bg_images.setElementAt(newimg,depth);
@@ -1259,6 +1346,7 @@ public class EngineLogic {
 		} else {
 			bg_images.setElementAt(null,depth);
 		}
+		invalidateBGTiles();
 	}
 
 	/** protected */
@@ -1333,7 +1421,7 @@ public class EngineLogic {
 		} else {
 			if (y<0 || y>=nrtilesy) return;
 		}
-		int tileid = tilestrToInt(tilestr);
+		int tileid = tileStrToID(tilestr);
 		tilemap[x_mod][y_mod] = tileid;
 		tilecidmap[x_mod][y_mod] &= preserve_cids;
 		tilecidmap[x_mod][y_mod] |= tileintToCid(tileid);
@@ -1459,7 +1547,7 @@ public class EngineLogic {
 		} else {
 			if (yidx<0 || yidx>=nrtilesy) return out_of_bounds_tile;
 		}
-		return tileidToString(tilemap[xidx][yidx]);
+		return tileIDToStr(tilemap[xidx][yidx]);
 	}
 
 	public int getTileCid(JGRectangle tiler) {
@@ -1470,10 +1558,11 @@ public class EngineLogic {
 		return cid;
 	}
 
+	@SuppressWarnings("unused")
 	private int tilestrToCid(String tilestr) {
 		if (tilestr==null || tilestr.length()==0) return 0;
 		Integer tileid = (Integer)
-			images_tilecid.get( new Integer(tilestrToInt(tilestr)) );
+			images_tilecid.get( new Integer(tileStrToID(tilestr)) );
 		if (tileid==null) {
 			System.out.println("Warning: unknown tile '"+tilestr+"'.");
 			// XXX no reference to dbg
@@ -1496,8 +1585,12 @@ public class EngineLogic {
 		return tileid.intValue();
 	}
 
-	/** null or empty string -&gt; 0 */
-	private int tilestrToInt(String tilestr) {
+	/** Convert tile name to integer ID code (as used internally).  The ID
+	 * code basically encodes the four characters of the string into the bytes
+	 * of the four-byte integer.  The ID code is NOT related to the collision
+	 * ID (CID).
+	* @param tilestr tilename, null or empty string -&gt; ID = 0 */
+	public int tileStrToID(String tilestr) {
 		if (tilestr==null) return 0;
 		switch (tilestr.length()) {
 			case 0: return 0;
@@ -1520,8 +1613,12 @@ public class EngineLogic {
 		}
 	}
 
-	/** tileid==0 -&gt; empty string */
-	private String tileidToString(int tileid) {
+	/** Convert tile ID code to tile name (as used internally).  The ID
+	 * code basically encodes the four characters of the string into the bytes
+	 * of the four-byte integer.  The ID code is NOT related to the collision
+	 * ID (CID).
+	* @param tilestr tile ID, tileid==0 -&gt; tilename = empty string */
+	public String tileIDToStr(int tileid) {
 		if (tileid==0) return "";
 		StringBuffer tilestr = new StringBuffer(""+(char)(tileid&255));
 		if (tileid >= 0x100) tilestr.append( (char)((tileid/0x100)&255));
@@ -1605,6 +1702,7 @@ public class EngineLogic {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public void setTilesMulti(int xofs,int yofs,String [] tilemap) {
 		for (int y=0; y<tilemap.length; y++) {
 			Vector tokens = tokenizeString(tilemap[y],' ');
@@ -1664,6 +1762,7 @@ public class EngineLogic {
 					getSubImage(imgmap,imgnr),
 					"-", 0,0,0,0);
 			}
+			@SuppressWarnings("unused")
 			JGImage letter = getImage(lettername);
 			eng.drawImage(x,y,lettername,pf_relative);
 			//eng.drawImage(buf_gfx, x,y,lettername,pf_relative);
@@ -1775,41 +1874,44 @@ public class EngineLogic {
 
 
 
-	/** Initialise some derived pf dimension variables and clear the tile map.
-	 */
+	/** Initialise some derived pf dimension variables. Also clears the tile
+	* map if !is_inited.  Clears the resized image cache if is_inited and
+	* is_resizeable.
+	*/
+	@SuppressWarnings("unchecked")
 	public void initPF() {
 		int allowed_width = winwidth + crop_left + crop_right;
 		int allowed_height = winheight + crop_top + crop_bottom;
-		// these came from the canvas constructor
-		viewnrtilesx=nrtilesx;
-		viewnrtilesy=nrtilesy;
-		if (prescale) {
-			scaledtilex = allowed_width / nrtilesx;
-			scaledtiley = allowed_height / nrtilesy;
-			double aspectratio = (scaledtilex / (double)scaledtiley)
-					/ (tilex / (double)tiley);
-			if (aspectratio < min_aspect) {
-				// y is too large
-				scaledtiley = (int)(scaledtilex / min_aspect);
-			} else if (aspectratio > max_aspect) {
-				// x is too large
-				scaledtilex = (int)(max_aspect * scaledtiley);
-			}
-			width = scaledtilex*nrtilesx;
-			height = scaledtiley*nrtilesy;
-		} else {
+		if (!prescale) {
+			// canvas_x/yofs are zero for !prescale, so should x/y_excess be
+			allowed_width = winwidth;
+			allowed_height = winheight;
+		}
+		// calculate scaledtilex/y and width/height according to aspect ratio
+		// constraints
+		scaledtilex = allowed_width / viewnrtilesx;
+		scaledtiley = allowed_height / viewnrtilesy;
+		double aspectratio = (scaledtilex / (double)scaledtiley)
+				/ (tilex / (double)tiley);
+		if (aspectratio < min_aspect) {
+			// y is too large
+			scaledtiley = (int)(scaledtilex / min_aspect);
+		} else if (aspectratio > max_aspect) {
+			// x is too large
+			scaledtilex = (int)(max_aspect * scaledtiley);
+		}
+		width = scaledtilex*viewnrtilesx;
+		height = scaledtiley*viewnrtilesy;
+		if (!prescale) {
+			// for !prescale, set scaledtilex/y to tilex/y
 			scaledtilex = tilex;
 			scaledtiley = tiley;
-			// XXX aspect ratio is not constrained yet in this case!
-			width = winwidth;
-			height = winheight;
 		}
-		x_scale_fac = width  / (double)(tilex*nrtilesx);
-		y_scale_fac = height / (double)(tiley*nrtilesy);
+		x_scale_fac = width  / (double)(tilex*viewnrtilesx);
+		y_scale_fac = height / (double)(tiley*viewnrtilesy);
 		min_scale_fac = Math.min( x_scale_fac, y_scale_fac );
-		initBGTiles(nrtilesx, nrtilesy, "");
 		// now, calculate the offsets. 
-		if (prescale) {
+		//if (prescale) {
 			int x_excess = width-winwidth;
 			int y_excess = height-winheight;
 			// balance is a number between -1 (shift left) and 1 (shift right)
@@ -1820,7 +1922,17 @@ public class EngineLogic {
 				ybalance = (crop_bottom-crop_top)/(crop_top+crop_bottom);
 			canvas_xofs = (int)(-x_excess*(0.5 - 0.5*xbalance));
 			canvas_yofs = (int)(-y_excess*(0.5 - 0.5*ybalance));
-		} // else use default offsets of 0.0
+		//} // else use default offsets of 0.0
+		if (!is_inited) {
+			initBGTiles(nrtilesx, nrtilesy, "");
+		} else {
+			if (is_resizeable) {
+				// clear resized images so that they are reconstructed
+				// from images_orig
+				// XXX maybe pre-load images to prevent hiccups?
+				images = new Hashtable();
+			}
+		}
 	}
 
 
@@ -1859,7 +1971,7 @@ public class EngineLogic {
 		pf_wrapshiftx = shiftx;
 		pf_wrapshifty = shifty;
 		// ensure offset is properly clipped
-		setViewOffset(xofs,yofs,false);
+		setViewOffset(pendingxofs,pendingyofs,false);
 		calcPFWrapCenter();	
 		JGObject.updateEngineSettings();
 	}
@@ -1892,6 +2004,7 @@ public class EngineLogic {
 
 	public void removeAllTimers() { timers.removeAllElements(); }
 
+	@SuppressWarnings("unchecked")
 	public void registerTimer(JGTimer timer) { timers.addElement(timer); }
 
 	/** protected */
@@ -1908,6 +2021,7 @@ public class EngineLogic {
 
 	/* game state */
 
+	@SuppressWarnings("unchecked")
 	public void setGameState(String state) {
 		boolean already_in_state = inGameStateNextFrame(state);
 		gamestate_nextframe.removeAllElements();
@@ -1916,6 +2030,7 @@ public class EngineLogic {
 		if (!already_in_state) gamestate_new.addElement(state);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void addGameState(String state) {
 		if (!inGameStateNextFrame(state)) {
 			gamestate_nextframe.addElement(state);
@@ -1949,11 +2064,13 @@ public class EngineLogic {
 
 	/*====== animation ======*/
 
+	@SuppressWarnings("unchecked")
 	public void defineAnimation (String id,
 	String [] frames, double speed) {
 		animations.put(id, new Animation(frames,speed));
 	}
 
+	@SuppressWarnings("unchecked")
 	public void defineAnimation (String id,
 	String [] frames, double speed, boolean pingpong) {
 		animations.put(id, new Animation(frames,speed,pingpong));
@@ -2083,10 +2200,12 @@ public class EngineLogic {
 	/*=== audio ===*/
 
 	/** clipid -} filename */
+	@SuppressWarnings("unchecked")
 	public Hashtable audioclips = new Hashtable();
 	/** Associate given clipid with a filename.  Files are loaded from the
 	* resource path.  Java 1.2+ supports at least: midi and wav files. */
 
+	@SuppressWarnings("unchecked")
 	public void defineAudioClip(Object pkg_obj,String clipid,String filename) {
 		filename = getAbsolutePath(pkg_obj,filename);
 		audioclips.put(clipid,filename);

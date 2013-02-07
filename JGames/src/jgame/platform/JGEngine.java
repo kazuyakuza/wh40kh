@@ -56,7 +56,8 @@ import java.awt.event.*;
 
  * <P> The engine manages a list of sprite objects, and a matrix of
  * equal-sized tiles. Its primary way to draw graphics is images. Images may
- * be loaded from Gifs, JPegs, or PNGs (PNGs not in java 1.2), which may
+ * be loaded from Gifs, JPegs, or PNGs (PNGs not in java 1.2, and GIFs are
+ * not always supported in MIDP, not even on new phones), which may
  * contain either single images, or regularly spaced arrays or matrices of
  * images (i.e. sprite sheets, we will call them image maps).  An image is
  * identified by a unique name, and is defined by the image file it comes from,
@@ -119,19 +120,34 @@ import java.awt.event.*;
  * <p>The engine supports keyboard and mouse input.  The state of the keyboard
  * is maintained in a keymap, which can be read by getKey. The mouse can be
  * read using getMouseButton and getMouseX/Y.  The mouse buttons also have
- * special keycodes.  MIDP does not support mouse yet, so the mouse state is
- * always coordinate (0,0) and no mouse buttons pressed.
+ * special keycodes.  In MIDP, touch screens will generate mouse events.
+ * Button 1 is pressed when the user touches the screen.  The mouse
+ * coordinates change only when the user touches or swipes the screen.
 
  * <p>Sound clips can be loaded using defineAudio or by appropriate entries in
  * a table loaded by defineMedia.  playAudio and stopAudio can be used to
  * control clip playing.  enableAudio and disableAudio can be used to globally
- * turn audio on and off for the entire application.  Sound is not yet
- * implemented in MIDP, so sound calls are ignored.
+ * turn audio on and off for the entire application.  In MIDP, sound always
+ * has only one channel, so the channel parameter is ignored.  Due to
+ * limitations in typical MIDP implementations, playing a new sound while a
+ * sound is already playing will not trigger the new sound, but the old sound
+ * will keep playing.
 
  * <p>A game speed variable is used to determine the update speed of
  * velocities and timers.  Game speed can be adapted by calling setGameSpeed,
  * or is adapted automatically in video synced frame rate mode (as set by
  * setVideoSyncedUpdate).   
+
+ * <p>User statistics, game progress, and basic save game information can 
+ * be stored using the store...() API.  It enables persistent storage of
+ * numbers and Strings.  It works with both MIDP and JRE, but JRE applets will
+ * need to be signed because persistent storage requires access to the local
+ * file system.
+
+ * <p>The opts...  methods provide a standard options menu API.  When an
+ * option is defined, a standard option menu item is created which is directly
+ * linked to a persistent storage variable.  Currently implemented on Android
+ * only.
 
  * <p>Upon initialisation, the engine shows an initialisation screen with a
  * progress bar that reflects progress on the current graphics table being
@@ -150,9 +166,11 @@ import java.awt.event.*;
  * exceptions will generally be treated as debug messages.  The messages can
  * be printed on the playfield, next to the objects that output them.  See
  * dbgSetMessagesInPf for more information.  Debug facilities are not yet
- * implemented in MIDP, so debug calls are ignored.
+ * implemented in MIDP, so most debug calls are ignored, except dbgPrint and
+ * dbgShowException, which print to stdout.
 
  */
+@SuppressWarnings({ "unused", "serial" })
 public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 	JREImage imageutil = new JREImage();
@@ -235,6 +253,10 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		el.defineImage(imgname,tilename,collisionid, imgmap, mapidx, img_op);
 	}
 
+	public void defineImageRotated(String name, String tilename,
+	int collisionid, String srcname, double angle) {
+		el.defineImageRotated(this,name,tilename,collisionid, srcname, angle);
+	}
 
 	public void defineImageMap(String mapname, String imgfile,
 	int xofs,int yofs, int tilex,int tiley, int skipx,int skipy) {
@@ -294,6 +316,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 	/* objects from engine */
 
+	@SuppressWarnings("unchecked")
 	public Vector getObjects(String prefix,int cidmask,boolean suspended_obj,
 	JGRectangle bbox) {
 		return el.getObjects(prefix,cidmask,suspended_obj,
@@ -404,7 +427,15 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	}
 
 	void setColor(Graphics g,JGColor col) {
-		col.impl=new Color(col.r,col.g,col.b);
+		
+		/* BEGIN CHANGE BY KAZUYA */
+		/* ADDED TO PRINT USING ALPHA CODE */
+		col.impl=new Color(col.r,col.g,col.b,col.alpha);
+		/* END CHANGE BY KAZUYA */
+		/* BEGIN ORIGINAL CHANGED */
+		//col.impl=new Color(col.r,col.g,col.b);
+		/* END ORIGINAL CHANGED */
+		
 		g.setColor((Color)col.impl);
 	}
 
@@ -508,6 +539,14 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		return el.getTileStr(center, xofs,yofs);
 	}
 
+	public int tileStrToID(String tilestr) {
+		return el.tileStrToID(tilestr);
+	}
+
+	public String tileIDToStr(int tileid) {
+		return el.tileIDToStr(tileid);
+	}
+
 
 
 
@@ -581,9 +620,10 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		boolean is_initialised=false;
 		/** paint interface that is used when the canvas is not initialised (for
 		 * displaying status info while starting up, loading files, etc. */
+		@SuppressWarnings("unchecked")
 		private ListCellRenderer initpainter=null;
 		String progress_message="Please wait, loading files .....";
-		String author_message="JGame 3.3";
+		String author_message="JGame "+JGameVersionString;
 		/** for displaying progress bar, value between 0.0 - 1.0 */
 		double progress_bar=0.0;
 
@@ -591,6 +631,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 			is_initialised=true; 
 			initpainter=null;
 		}
+		@SuppressWarnings("unchecked")
 		void setInitPainter(ListCellRenderer painter) {
 			initpainter=painter;
 		}
@@ -615,6 +656,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 		/** Don't call directly. Use repaint().
 		*/
+		@SuppressWarnings("unchecked")
 		public void paint(Graphics g) { try {
 			if (el.is_exited) {
 				paintExitMessage(g);
@@ -737,16 +779,22 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	JGColor debug_auxcolor1 = JGColor.green;
 	JGColor debug_auxcolor2 = JGColor.magenta;
 
+	@SuppressWarnings("unchecked")
 	private Hashtable dbgframelogs = new Hashtable(); // old error msgs
+	@SuppressWarnings("unchecked")
 	private Hashtable dbgnewframelogs = new Hashtable(); // new error msgs
 	/** flags indicating messages are new */
+	@SuppressWarnings("unchecked")
 	private Hashtable dbgframelogs_new = new Hashtable();
 	/** objects that dbgframes correspond to (JGObject) */
+	@SuppressWarnings("unchecked")
 	private Hashtable dbgframelogs_obj = new Hashtable();
 	/** time that removed objects are dead (Integer) */
+	@SuppressWarnings("unchecked")
 	private Hashtable dbgframelogs_dead = new Hashtable();
 
 	/** Refresh message logs for this frame. */
+	@SuppressWarnings("unchecked")
 	private void refreshDbgFrameLogs() {
 		dbgframelogs_new = new Hashtable(); // clear "new" flag
 		for (Enumeration e=dbgnewframelogs.keys(); e.hasMoreElements();) {
@@ -759,6 +807,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	}
 
 	/** paint the messages */
+	@SuppressWarnings("unchecked")
 	void paintDbgFrameLogs(Graphics g) {
 		// we use an absolute font size
 		Font dbgfont = new Font(debugmessage_font.name,debugmessage_font.style,
@@ -856,6 +905,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 	public void dbgPrint(String msg) { dbgPrint("MAIN",msg); }
 
+	@SuppressWarnings("unchecked")
 	public void dbgPrint(String source,String msg) {
 		if ((debugflags&MSGSINPF_DEBUG)!=0) {
 			Vector log = (Vector)dbgnewframelogs.get(source);
@@ -883,8 +933,10 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 			dbgPrint(source,st.toString());
 		} else {
 			StringTokenizer toker = new StringTokenizer(st.toString(),"\n");
-			dbgPrint(source,toker.nextToken());
-			dbgPrint(source,toker.nextToken());
+			if (toker.hasMoreTokens())
+				dbgPrint(source,toker.nextToken());
+			if (toker.hasMoreTokens())
+				dbgPrint(source,toker.nextToken());
 			if (toker.hasMoreTokens())
 				dbgPrint(source,toker.nextToken());
 		}
@@ -925,10 +977,20 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 
 	/** Construct engine, but do not initialise it yet. 
-	* Call initEngine or initEngineApplet to initialise the engine. */
+	* Call initEngine, initEngineApplet, or initEngineComponent to
+	* initialise the engine. */
 	public JGEngine() {
 		imageutil.setComponent(this);
 	}
+
+	public void initEngineComponent(int width,int height) {
+		i_am_applet=false;
+		jre.create_frame=false;
+		el.winwidth=width;
+		el.winheight=height;
+		init();
+	}
+
 
 	/** Init engine as applet; call this in your engine constructor.  Applet
 	 * init() will start the game.
@@ -996,6 +1058,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	public boolean isApplet() { return i_am_applet; }
 	public boolean isMidlet() { return false; }
 	public boolean isOpenGL() { return false; }
+	public boolean isAndroid() { return false; }
 
 	public int viewWidth() { return el.viewnrtilesx*el.tilex; }
 	public int viewHeight() { return el.viewnrtilesy*el.tiley; }
@@ -1044,7 +1107,9 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	/** Initialise engine; don't call directly.  This is supposed to be called
 	 * by the applet viewer or the initer.
 	 */
+	@SuppressWarnings("unchecked")
 	public void init() {
+		jre.storeInit();
 		if (el.winwidth==0) {
 			// get width/height from applet dimensions
 			el.winwidth=getWidth();
@@ -1054,16 +1119,20 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		if (!el.view_initialised) {
 			exitEngine("Canvas settings not initialised, use setCanvasSettings().");
 		}
-		if (!i_am_applet) {
+
+		el.initPF();
+
+		if (!i_am_applet && jre.create_frame) {
 			jre.createWindow(this,jre.win_decoration);
 		}
 		//setAudioLatency(getAudioLatencyPlatformEstimate());
-
-		canvas = new JGCanvas(el.winwidth,el.winheight);
+		//System.out.println("X"+el.canvas_xofs+" Y"+el.canvas_yofs);
+		canvas = new JGCanvas(
+			el.winwidth - (el.canvas_xofs > 0 ? el.canvas_xofs*2 : 0),
+			el.winheight - (el.canvas_yofs > 0 ? el.canvas_yofs*2 : 0)
+		);
 		jre.canvas = canvas;
 	
-		el.initPF();
-
 		jre.clearKeymap();
 		canvas.addMouseListener(jre);
 		canvas.addMouseMotionListener(jre);
@@ -1071,13 +1140,14 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 
 
-		// set bg color so that the canvas's padding is in the proper color
+		// set bg colors so that the canvas's padding is in the proper color
 		canvas.setBackground(getAWTColor(el.bg_color));
+		setBackground(getAWTColor(el.bg_color));
 		if (jre.my_win!=null) jre.my_win.setBackground(getAWTColor(el.bg_color));
 		// determine default font size (unscaled)
 		el.msg_font = new JGFont("Helvetica",0,
 			(int)(16.0/(640.0/(el.tilex * el.nrtilesx))));
-		setLayout(new FlowLayout(FlowLayout.LEADING,0,0));
+		setLayout(new FlowLayout(FlowLayout.CENTER,0,0));
 		add(canvas);
 		if (!JGObject.setEngine(this)) {
 			/** yes, you see that right.  I've used a random interface with a
@@ -1115,7 +1185,8 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 				if (splash!=null) {
 					JGPoint splash_size=getImageSize("splash_image");
 					drawImage(g,viewWidth()/2-splash_size.x/2,
-						viewHeight()/4-splash_size.y/2,"splash_image",
+						Math.max(0,viewHeight()/4-splash_size.y/2),
+						"splash_image",
 						false);
 				}
 				drawString(g,canvas.progress_message,
@@ -1127,20 +1198,20 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 				// paint the right hand side black in case the bar decreases
 				setColor(g,el.bg_color);
 				drawRect(g,(int)(viewWidth()*(0.1+0.8*canvas.progress_bar)),
-						(int)(viewHeight()*0.6),
+						(int)(viewHeight()*0.75),
 						(int)(viewWidth()*0.8*(1.0-canvas.progress_bar)),
 						(int)(viewHeight()*0.05), true,false, false);
 				// left hand side of bar
 				setColor(g,el.fg_color);
-				drawRect(g,(int)(viewWidth()*0.1), (int)(viewHeight()*0.6),
+				drawRect(g,(int)(viewWidth()*0.1), (int)(viewHeight()*0.75),
 						(int)(viewWidth()*0.8*canvas.progress_bar),
 						(int)(viewHeight()*0.05), true,false, false);
 				// length stripes
-				drawRect(g,(int)(viewWidth()*0.1), (int)(viewHeight()*0.6),
+				drawRect(g,(int)(viewWidth()*0.1), (int)(viewHeight()*0.75),
 						(int)(viewWidth()*0.8),
 						(int)(viewHeight()*0.008), true,false, false);
 				drawRect(g,(int)(viewWidth()*0.1),
-						(int)(viewHeight()*(0.6+0.046)),
+						(int)(viewHeight()*(0.75+0.046)),
 						(int)(viewWidth()*0.8),
 						(int)(viewHeight()*0.008), true,false, false);
 				drawString(g,canvas.author_message,
@@ -1208,6 +1279,8 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		if (el.is_inited) {
 			JGObject.setEngine(null);
 		}
+		// stop all samples
+		disableAudio();
 		System.out.println("JGame engine disposed.");
 	}
 
@@ -1292,6 +1365,9 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 			canvas.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		else if (cursor==WAIT_CURSOR)
 			canvas.setCursor(new Cursor(Cursor.WAIT_CURSOR));
+		else if (cursor==NO_CURSOR)
+			canvas.setCursor(Toolkit.getDefaultToolkit().createCustomCursor(
+				null_image, new Point(0,0), "hidden" ) );
 	}
 
 	/** 1x1 pixel image with transparent colour */
@@ -1347,6 +1423,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	}
 
 	/** Do some administration, call doFrame. */
+	@SuppressWarnings("unchecked")
 	private void doFrameAll() {
 		jre.audioNewFrame();
 		// the first flush is needed to remove any objects that were created
@@ -1379,6 +1456,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		el.frameFinished();
 	}
 
+	@SuppressWarnings("unchecked")
 	private void invokeGameStateMethods(String prefix,Vector states) {
 		for (Enumeration e=states.elements(); e.hasMoreElements(); ) {
 			String state = (String) e.nextElement();
@@ -1388,6 +1466,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 
 	public void doFrame() {}
 
+	@SuppressWarnings("unchecked")
 	void paintFrame(Graphics g) {
 		buf_gfx=g;
 		setColor(g,el.fg_color);
@@ -1502,7 +1581,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 			el.scaleXPos(x2,pf_relative),el.scaleYPos(y2,pf_relative) );
 	}
 
-	public void drawPolygon(double [] x,double [] y, JGColor [] col,
+	public void drawPolygon(double [] x,double [] y, JGColor [] col,int len,
 	boolean filled, boolean pf_relative) {
 		if (buf_gfx==null) return;
 		int [] xpos = new int[3];
@@ -1511,8 +1590,8 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		ypos[0] = el.scaleYPos(y[0],pf_relative);
 		xpos[1] = el.scaleXPos(x[1],pf_relative);
 		ypos[1] = el.scaleYPos(y[1],pf_relative);
-		xpos[2] = el.scaleXPos(x[x.length-1],pf_relative);
-		ypos[2] = el.scaleYPos(y[y.length-1],pf_relative);
+		xpos[2] = el.scaleXPos(x[len-1],pf_relative);
+		ypos[2] = el.scaleYPos(y[len-1],pf_relative);
 		if (!filled) {
 			// draw first and last line segment
 			if (col!=null) setColor(buf_gfx,col[1]);
@@ -1520,7 +1599,7 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 			if (col!=null) setColor(buf_gfx,col[0]);
 			buf_gfx.drawLine(xpos[2],ypos[2],xpos[0],ypos[0]);
 		}
-		for (int i=2; i<x.length; i++) {
+		for (int i=2; i<len; i++) {
 			xpos[2] = el.scaleXPos(x[i],pf_relative);
 			ypos[2] = el.scaleYPos(y[i],pf_relative);
 			if (col!=null) setColor(buf_gfx,col[i]);
@@ -1555,6 +1634,12 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	public void drawRect(double x,double y,double width,double height,
 	boolean filled, boolean centered,boolean pf_relative,
 	JGColor [] shadecol) {
+		drawRect(buf_gfx,x,y,width,height,filled,centered,pf_relative);
+	}
+
+	public void drawRect(double x,double y,double width,double height,
+	boolean filled, boolean centered,boolean pf_relative,
+	JGColor [] shadecol,String tileimage) {
 		drawRect(buf_gfx,x,y,width,height,filled,centered,pf_relative);
 	}
 
@@ -1621,6 +1706,23 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		if (buf_gfx==null) return;
 		drawImage(buf_gfx,x,y,imgname,pf_relative);
 	}
+
+	/* new versions of drawImage */
+
+	public void drawImage(String imgname,double x,double y) {
+		drawImage(x,y,imgname);
+	}
+
+	public void drawImage(String imgname,double x,double y,boolean pf_relative){
+		drawImage(x,y,imgname,pf_relative);
+	}
+
+	public void drawImage(String imgname, double x,double y,
+	boolean pf_relative,JGColor blend_col,
+	double alpha, double rot, double scale) {
+		drawImage(x,y,imgname,blend_col,alpha,rot,scale,pf_relative);
+	}
+
 
 	public void drawString(String str, double x, double y, int align,
 	JGFont font, JGColor color) {
@@ -1760,6 +1862,23 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 		return JREEngine.getKeyCodeStatic(keydesc); 
 	}
 
+	public boolean hasAccelerometer() { return false; }
+
+	public double getAccelX() {
+		return 0;
+	}
+	public double getAccelY() {
+		return 0;
+	}
+	public double getAccelZ() {
+		return 1;
+	}
+
+	public double [] getAccelVec() {
+		return new double[] { 0,0,1 };
+	}
+
+
 	/*====== animation ======*/
 
 	public void defineAnimation (String id,
@@ -1806,6 +1925,19 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 			return file.getCanonicalPath();
 		} catch (IOException e) {
 			return null;
+		}
+	}
+
+	public int invokeUrl(String url,String target) {
+		if (isApplet()) {
+			try {
+				getAppletContext().showDocument(new URL(url),target);
+			} catch (MalformedURLException e) {
+				return 0;
+			}
+			return -1;
+		} else {
+			return 0;
 		}
 	}
 
@@ -2020,6 +2152,73 @@ public abstract class JGEngine extends Applet implements JGEngineInterface {
 	public void stopAudio(String channel) { jre.stopAudio(channel); }
 
 	public void stopAudio() { jre.stopAudio(); }
+
+
+	/*===== store =====*/
+
+	public void storeWriteInt(String id,int value) {
+		jre.storeWriteInt(id,value);
+	}
+
+	public void storeWriteDouble(String id,double value) {
+		jre.storeWriteDouble(id,value);
+	}
+
+	public void storeWriteString(String id,String value) {
+		jre.storeWriteString(id,value);
+	}
+
+	public void storeRemove(String id) {
+		jre.storeRemove(id);
+	}
+
+	public boolean storeExists(String id) {
+		return jre.storeExists(id);
+	}
+
+	public int storeReadInt(String id,int undef) {
+		return jre.storeReadInt(id,undef);
+	}
+
+	public double storeReadDouble(String id,double undef) {
+		return jre.storeReadDouble(id,undef);
+	}
+
+	public String storeReadString(String id,String undef) {
+		return jre.storeReadString(id,undef);
+	}
+
+	/*====== options ======*/
+
+	public void optsAddTitle(String title) {
+		jre.optsAddTitle(title);
+	}
+
+	public void optsAddNumber(String varname,String title,String desc,
+	int decimals, double lower,double upper,double step, double initial) {
+		jre.optsAddNumber(varname,title,desc,decimals,lower,upper,step,initial);
+	}
+	public void optsAddBoolean(String varname,String title,String desc,
+	boolean initial) {
+		jre.optsAddBoolean(varname,title,desc,initial);
+	}
+	public void optsAddEnum(String varname,String title,String desc,
+	String [] values, int initial) {
+		jre.optsAddEnum(varname,title,desc,values,initial);
+	}
+
+	public void optsAddKey(String varname,String title,String desc,int initial){
+		jre.optsAddKey(varname,title,desc,initial);
+	}
+
+	public void optsAddString(String varname,String title,String desc,
+	int maxlen, boolean isPassword, String initial) {
+		jre.optsAddString(varname,title,desc,maxlen,isPassword,initial);
+	}
+
+	public void optsClear() {
+		jre.optsClear();
+	}
 
 }
 

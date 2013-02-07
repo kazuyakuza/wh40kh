@@ -5,9 +5,11 @@ import jgame.JGPoint;
 import jgame.JGImage;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.util.*;
 import java.awt.image.*;
 import java.net.*;
+import java.io.*;
 import java.lang.reflect.*;
 /** Some handy utilities for loading an manipulating images, bypassing Java's
  * object disoriented way of handling images; used internally by jgame. */
@@ -18,6 +20,7 @@ class JREImage implements JGImage {
 	static MediaTracker mediatracker=null;
 	DummyObserver observer = new DummyObserver();
 
+	@SuppressWarnings("unchecked")
 	static Hashtable loadedimages = new Hashtable(); /* filenames => Images */
 
 	class DummyObserver implements ImageObserver {
@@ -26,6 +29,7 @@ class JREImage implements JGImage {
 		int x,int y, int width,int height) { return true; }
 	}
 
+	@SuppressWarnings("unchecked")
 	public void setComponent(Component comp) {
 		output_comp=comp;
 		mediatracker = new MediaTracker(output_comp);
@@ -47,24 +51,41 @@ class JREImage implements JGImage {
 	 * an image with the same name twice will get the cached image the second
 	 * time.  If you want to remove an image from the cache, use purgeImage.
 	* Throws JGError when there was an error. */
+	@SuppressWarnings({ "deprecation", "unchecked" })
 	public JGImage loadImage(String imgfile) {
 		Image img = (Image)loadedimages.get(imgfile);
 		if (img==null) {
 			URL imgurl = getClass().getResource(imgfile);
-			if (imgurl==null) throw new JGameError(
-					"File "+imgfile+" not found.",true);
+			if (imgurl==null) {
+				try {
+					File imgf = new File(imgfile);
+					if (imgf.canRead()) {
+						imgurl = imgf.toURL();
+					} else {
+						imgurl = new URL(imgfile);
+						//throw new JGameError(
+						//	"File "+imgfile+" not found.",true);
+					}
+				} catch (MalformedURLException e) {
+					//e.printStackTrace();
+					throw new JGameError(
+						"File not found or malformed path or URL '"+imgfile+"'.",true);
+				}
+			}
 			img = output_comp.getToolkit().createImage(imgurl);
 			loadedimages.put(imgfile,img);
 		}
 		try {
 			ensureLoaded(img);
 		} catch (Exception e) {
+			//e.printStackTrace();
 			throw new JGameError("Error loading image "+imgfile );
 		}
 		return new JREImage(img);
 	}
 
 	/** Behaves like loadImage(String).  Returns null if there was an error. */
+	@SuppressWarnings("unchecked")
 	public static JGImage loadImage(URL imgurl) {
 		Image img = (Image)loadedimages.get(imgurl);
 		if (img==null) {
@@ -136,6 +157,7 @@ class JREImage implements JGImage {
 
 	/** for angle, only increments of 90 are allowed */
 	public JGImage rotate(int angle) {
+		@SuppressWarnings("unused")
 		Image rot = null;
 		JGPoint size = getSize();
 		int [] buffer = getPixels();
@@ -188,7 +210,28 @@ class JREImage implements JGImage {
 				rotate, 0, size.x) ) );
 	}
 
+	public JGImage rotateAny(double angle) {
+		JGPoint size = getSize();
+		int sw = size.x;
+		int sh = size.y;
+		// destination size is upper bound size. Upper bound is the max
+		// of the longest dimension and the figure's dimension at 45 degrees
+		// = sw*sin(45)+sh*cos(45) ~= 1.5*(sw+sh)
+		int dw = (int)Math.max( Math.max(sw,sh), 0.75*(sw+sh));
+		int dh = dw;
+		int xtrans = (dw-sw)/2;
+		int ytrans = (dh-sh)/2;
+		BufferedImage dst = createCompatibleImage(dw,dh,Transparency.BITMASK);
+		Graphics2D g = (Graphics2D)dst.getGraphics();
+		AffineTransform tt =AffineTransform.getTranslateInstance(xtrans,ytrans);
+		AffineTransform tr = AffineTransform.getRotateInstance(angle,sw/2,sh/2);
+		tt.concatenate(tr);
+		g.drawImage(img, tt, null);
+		return new JREImage(dst);
+	}
+
 	public JGImage flip(boolean horiz,boolean vert) {
+		@SuppressWarnings("unused")
 		Image flipped = null;
 		JGPoint size = getSize();
 		int [] buffer = getPixels();
@@ -260,6 +303,7 @@ class JREImage implements JGImage {
 	}
 
 	public JGImage crop(int x,int y, int width,int height) {
+		@SuppressWarnings("unused")
 		JGPoint size = getSize();
 		int [] buffer = getPixels(x,y, width,height);
 		return new JREImage( output_comp.createImage(
