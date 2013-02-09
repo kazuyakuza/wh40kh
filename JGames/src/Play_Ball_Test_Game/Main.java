@@ -15,7 +15,7 @@ public class Main
 	private static int largo = 480;
 	
 	/**
-	 * Inicia el juego en una ventana de tamaño 640x480.
+	 * Inicia el juego en una ventana de tamaño anchoXlargo.
 	 * 
 	 * @param args
 	 */

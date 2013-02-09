@@ -1107,7 +1107,7 @@ public class JGObject {
 	/* computation */
 
 	/** A Boolean AND shorthand to use for collision;
-	* returns (value&amp;mask) != 0. */
+	* returns (value&amp;mask) != 0.**/
 	public static boolean and(int value, int mask) {
 		return (value&mask) != 0;
 	}

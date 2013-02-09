@@ -10,6 +10,9 @@ public class getRecurso
 	
 	private static boolean needChangeURL = false;
 	
+	/*Negar cración de objeto*/
+	private getRecurso () {}
+	
 	/**
 	 * Devuelve la dirección del recurso solicitado.
 	 * 
