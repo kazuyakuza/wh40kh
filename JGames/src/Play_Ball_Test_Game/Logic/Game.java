@@ -23,7 +23,7 @@ public class Game extends JGEngine
 {
 	
 	//Variables de Clase
-	private final double fps = 35;	//frames por segundo
+	private final double fps = 135;	//frames por segundo
 	private final double mfs = 2;	//max frame skip
 	
 	private LinkedList<JGObject> listaBalls;
@@ -94,13 +94,18 @@ public class Game extends JGEngine
                      getRecurso.getDir("Graficos/Sprites/Ball-3D-00.png"), // nombre del archivo
                      "-"                 // operaciones gráficas extras
 				   );
+		//Define DirectionsMoves de las Esferas.
+		if (getImage("Ball-3D-00").getSize().x >= getImage("Ball-3D-00").getSize().y)
+			DirectionMove.getDirMove().defineDirectionsMoves("Ball-3D-00", getImage("Ball-3D-00").getSize().x);
+		else
+			DirectionMove.getDirMove().defineDirectionsMoves("Ball-3D-00", getImage("Ball-3D-00").getSize().y);
 		
 		//Define el borde del campo de juego.
 		setTileSettings("", 2, 0);
 		
 		listaBalls = (LinkedList<JGObject>) new LinkedList ();
 		
-		for (int i=0; i<20; i++)
+		for (int i=0; i<10; i++)
 			listaBalls.addLast(new Ball (this));
 	}
 	
@@ -145,7 +150,8 @@ public class Game extends JGEngine
 	 */
 	public void paintFrame ()
 	{
-		drawString("" + listaBalls.size(), viewWidth()/2, viewHeight()/2, 0, new JGFont("arial",0,20), JGColor.red);
+		drawString("Actually Balls", viewWidth()/2, viewHeight()/2 -20, 0, new JGFont("arial",0,20), JGColor.red);
+		drawString("" + listaBalls.size(), viewWidth()/2, viewHeight()/2 +20, 0, new JGFont("arial",0,20), JGColor.red);
 	}
 
 }

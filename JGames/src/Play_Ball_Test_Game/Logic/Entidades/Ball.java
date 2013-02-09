@@ -1,15 +1,23 @@
 package Play_Ball_Test_Game.Logic.Entidades;
 
+import java.util.ArrayList;
+import java.util.Hashtable;
+
+import com.sun.org.apache.xerces.internal.impl.xpath.regex.Match;
+
 import jgame.JGColor;
+import jgame.JGFont;
 import jgame.JGObject;
+import Play_Ball_Test_Game.Logic.DirectionMove;
 import Play_Ball_Test_Game.Logic.Game;
+import Play_Ball_Test_Game.lib.utils;
 
 /**
  * Representa una pelota del juego.
  * 
  * @author Kazuya
  */
-public class Ball extends JGObject
+public class Ball extends JGObject implements Entidad
 {
 	//Veriables de Instancia
 	private JGColor color; //Color de la ball.
@@ -26,15 +34,28 @@ public class Ball extends JGObject
 		super ( "ball", // nombre del objeto
 				true,   // true = agrega un numero único luego del nombre del objeto
 			     		// Tuto	->	Si esto no se realiza, el objeto será reemplazado por otro del mismo nombre
-				game.random (0, game.pfWidth()-20),  // pos random X
-				game.random (0, game.pfHeight()-20), // pos random Y
+				game.random (0, game.pfWidth()-25),  // pos random X
+				game.random (0, game.pfHeight()-25), // pos random Y
 				1, 		// cid (Collision ID)
 				"Ball-3D-00" // Nomnbre del Sprite o Animación (null = ninguno)
 			  );
-		xspeed = eng.random(-4,4);
-		yspeed = eng.random(-4,4);
 		
-		color = new JGColor (eng.random(0, 255,20), eng.random(0, 255,20), eng.random(0, 255,20), 100);
+		//Seleccionar velocidad y dirección de movimiento seudo-random.
+		int randomDir = eng.random(1,DirectionMove.getDirMove().getMyMaxDirections("Ball-3D-00"),1);
+		int aux = 1;
+		for (double[] xy: DirectionMove.getDirMove().getMyDirections("Ball-3D-00").values())
+		{
+			if (aux == randomDir)
+			{
+				xspeed = eng.random(1,4,1) * xy[0];
+				yspeed = eng.random(1,4,1) * xy[1];
+				break;
+			}
+			aux++;
+		}
+		
+		//Selección seudo-random del color de la Ball.
+		color = new JGColor (eng.random(0, 255,40), eng.random(0, 255,40), eng.random(0, 255,40), 100);
 	}
 	
 	/* COMANDOS */
@@ -47,18 +68,12 @@ public class Ball extends JGObject
 	 */
 	public void move ()
 	{
-		//Parche para colision con esquinas.
-		if ((x >= 0) && (x <= 1) || (x >= eng.pfWidth()-21) && (x <= eng.pfWidth()-20)
-		 && (y >= 0) && (y <= 1) || (y >= eng.pfHeight()-21) && (y <= eng.pfHeight()-20))
-		{
-			hit_bg (2);
-		}
 	}
 	
 	/* CALL IN HEACH FRAME */
 	
 	/**
-	 * Dibujo de la Ball.
+	 * Color de la Ball.
 	 */
 	public void paint ()
 	{
@@ -75,56 +90,66 @@ public class Ball extends JGObject
 	/* CALL WHEN CHECK COLLISION */
 
 	/**
+	 * Método llamado cuando this (el objeto actual) colisiona con otro objeto.
+	 * 
+	 * @param obj obj colisionado.
+	 * 
 	 * Tuto	->	llamado cuando otro objeto colisiona con el actual.
 	 */
+	@SuppressWarnings("unchecked")
 	public void hit (JGObject obj)
 	{
-		// As a reaction to an object collision, we bounce in the
-		// direction we came from.  We only do this when the area in that
-		// direction seems clear of other objects, otherwise we might
-		// start oscillating back and forth.
-		// This collision problem is much more difficult than the tile
-		// collision problem, because there may be multiple simultaneous
-		// collisions, and the other objects are also moving at different
-		// speeds.
-		// We look ahead several steps in the opposite direction to see
-		// if any other object is there.
+		if (xspeed == 0 && yspeed == 0)
+			return;
 		
-		if (checkCollision (1, -3*xspeed, -3*yspeed) == 0)
+		ArrayList<double[]> posNewDirection = (ArrayList<double[]>) new ArrayList ();
+		for (double[] xy: DirectionMove.getDirMove().getMyDirections("Ball-3D-00").values())
+			if (checkCollision(obj.colid,(xspeed * xy[0]) + utils.signo(xy[0]),
+									     (yspeed * xy[1]) + utils.signo(xy[1])) == 0)
+				posNewDirection.add(xy);		
+		
+		if (! posNewDirection.isEmpty())
 		{
-			// reverse direction
-			xspeed = -xspeed;
-			yspeed = -yspeed;
+			double[] xy = posNewDirection.get(eng.random(0,posNewDirection.size()-1,1));
+			xspeed = (xspeed * xy[0]) + utils.signo(xy[0]);
+			yspeed = (yspeed * xy[1]) + utils.signo(xy[1]);
 		}
 	}
 	
 	/* CALL WHEN CHECK BG COLLISION */
 	
-	/** Handle collision with background. Called by checkBGCollision.
-	* Tilecid is the combined (ORed) CID of all tiles that this
-	* object collides with.  Note: there are two other variants
-	* of hit_bg available, namely one passing tilecid plus tile
-	* coordinates for each tile that the object collides with, and one
-	* passing the tile range that the object overlaps with at the moment
-	* of collision.  */
-	public void hit_bg (int tilecid) {
-		// Look around to see which direction is free.  If we find a free
-		// direction, move that way.
+	/**
+	 * Método llamado cuando this (el objeto actual) colisiona con el BG o con un Tile.
+	 * 
+	 * @param tilecid CID del BG o Tile colisionado.
+	 */
+	@SuppressWarnings("unchecked")
+	public void hit_bg (int tilecid)
+	{
+		if (xspeed == 0 && yspeed == 0)
+			return;
 		
-		if (!and(checkBGCollision(-xspeed,yspeed),3)) {
-			xspeed = -xspeed;
-		} else if (!and(checkBGCollision(xspeed,-yspeed),3)) {
-			yspeed = -yspeed;
-		} else if (!and(checkBGCollision(xspeed,-yspeed),3)
-		&&         !and(checkBGCollision(-xspeed,-yspeed),3) ) {
-			xspeed = -xspeed;
-			yspeed = -yspeed;
+		ArrayList<double[]> posNewDirection = (ArrayList<double[]>) new ArrayList ();
+		for (double[] xy: DirectionMove.getDirMove().getMyDirections("Ball-3D-00").values())
+			if (!and(checkBGCollision((xspeed * xy[0]) + utils.signo(xy[0]),
+									   (yspeed * xy[1]) + utils.signo(xy[1])),2))
+				posNewDirection.add(xy);		
+		
+		if (! posNewDirection.isEmpty())
+		{
+			double[] xy = posNewDirection.get(eng.random(0,posNewDirection.size()-1,1));
+			xspeed = (xspeed * xy[0]) + utils.signo(xy[0]);
+			yspeed = (yspeed * xy[1]) + utils.signo(xy[1]);
 		}
-		// else do nothing. You might think this case never occurs
-		// (otherwise, why would the object have collided?), but it
-		// does occur because object-object collision might already
-		// have reversed the direction of this object.  This is the kind
-		// of stuff that makes object interaction difficult.
+		else
+		{
+			while (and(checkBGCollision(0,0),2))
+			{
+				x -= utils.signo (x);
+				y -= utils.signo (y);
+			}
+			xspeed = yspeed = 0;
+		}
 	}
 
 }
