@@ -129,6 +129,13 @@ public class JGObject {
 	public int xdir=1,ydir=1;
 	/** Collision ID */
 	public int colid;
+	
+	/*CÓDIGO AGREGADO*/
+	
+	public boolean hited = false;
+	
+	/*FIN CÓDIGO AGREGADO*/
+	
 	/** Object's global identifier; may not change during the lifetime of the
 	 * object. */
 	String name;

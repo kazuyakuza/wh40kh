@@ -1035,6 +1035,9 @@ public class EngineLogic {
 		for (int si=0; si<srcsize; si++) {
 			JGObject srco = srcobj[si];
 			if (!srco.getBBox(sr)) continue;
+			/*CÓDIGO AGREGADO*/
+			if (srco.hited) continue;
+			/*FIN CÓDIGO AGREGADO*/
 			for (int di=0; di<dstsize; di++) {
 				JGObject dsto = dstobj[di];
 				if (dsto == srco) continue;

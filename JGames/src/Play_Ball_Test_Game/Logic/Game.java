@@ -23,7 +23,7 @@ public class Game extends JGEngine
 {
 	
 	//Variables de Clase
-	private final double fps = 135;	//frames por segundo
+	private final double fps = 35;	//frames por segundo
 	private final double mfs = 2;	//max frame skip
 	
 	private LinkedList<JGObject> listaBalls;
@@ -94,19 +94,18 @@ public class Game extends JGEngine
                      getRecurso.getDir("Graficos/Sprites/Ball-3D-00.png"), // nombre del archivo
                      "-"                 // operaciones gráficas extras
 				   );
-		//Define DirectionsMoves de las Esferas.
-		if (getImage("Ball-3D-00").getSize().x >= getImage("Ball-3D-00").getSize().y)
-			DirectionMove.getDirMove().defineDirectionsMoves("Ball-3D-00", getImage("Ball-3D-00").getSize().x);
-		else
-			DirectionMove.getDirMove().defineDirectionsMoves("Ball-3D-00", getImage("Ball-3D-00").getSize().y);
 		
 		//Define el borde del campo de juego.
 		setTileSettings("", 2, 0);
 		
 		listaBalls = (LinkedList<JGObject>) new LinkedList ();
 		
-		for (int i=0; i<10; i++)
-			listaBalls.addLast(new Ball (this));
+		//for (int i=0; i<10; i++)
+			//listaBalls.addLast(new Ball (this));
+		listaBalls.addLast(new Ball (this, pfWidth()/2 - 25 - 200, pfHeight()/2 - 25 - 50, DirectionMove.getRightDirection(), 1));
+		//listaBalls.addLast(new Ball (this, 0, 0, DirectionMove.getDownRightDirection(), 4));
+		listaBalls.addLast(new Ball (this, pfWidth()/2 - 25 + 200, pfHeight()/2 - 25 - 50, DirectionMove.getLeftDirection(), 1));
+		//listaBalls.addLast(new Ball (this, pfWidth() - 180, pfHeight() - 20, DirectionMove.getUpLeftDirection(), 4));
 	}
 	
 	/* CALL IN EACH FRAME */
@@ -125,20 +124,20 @@ public class Game extends JGEngine
 			moveObjects( null, // prefijo del nombre de los objetos a mover (null = todos)
 					 	 0     // cid de los objetos a mover (0 = todos)
 			           );
-		
-		// check obj-obj colisión
-		checkCollision( 1, // cids de los objetos que colisionan con los objetos de
-						1  // cids de los cuales se llama el método hit ().
-					  );
-		// check obj-tile colisión
-		checkBGCollision( 2, // cid del marco (fin del campo de juego)
-						  1  // cids de los objetos con colisionan con el marco
-						);
-		
-		// check out of view
-		for (JGObject b: listaBalls)
-			if (! b.isOnPF(-10, -10))
-				listaBalls.remove(b);
+			
+			// check obj-obj colisión
+			checkCollision( 1, // cids de los objetos que colisionan con los objetos de
+							1  // cids de los cuales se llama el método hit ().
+					  	  );
+			// check obj-tile colisión
+			checkBGCollision( 2, // cid del marco (fin del campo de juego)
+						  	  1  // cids de los objetos con colisionan con el marco
+						    );
+			
+			// check out of view
+			for (JGObject b: listaBalls)
+				if (! b.isOnPF(-10, -10))
+					listaBalls.remove(b);
 		}
 	}
 	
